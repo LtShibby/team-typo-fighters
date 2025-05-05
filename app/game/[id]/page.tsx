@@ -120,8 +120,8 @@ export default function GamePage({ params }: { params: { id: string } }) {
       { text: 'Life before death. Strength before weakness. Journey before destination.' },
       { text: 'Honor is not dead so long as he lives in the hearts of men.' },
       { text: 'Some men may be stronger than others. That does not give them the right to dominate those who are weaker.' },
-      { text: 'You mustn’t kneel to me. The Knights Radiant must stand again.' },
-      { text: 'The most important step a man can take. It’s not the first one, is it? It’s the next one. Always the next step.' }
+      { text: 'You mustnt kneel to me. The Knights Radiant must stand again.' },
+      { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
     ]
 
     const finalPrompts = (!error && prompts?.length > 0) ? prompts : fallbackPrompts
@@ -129,6 +129,19 @@ export default function GamePage({ params }: { params: { id: string } }) {
     if (error) {
       console.warn('Using fallback prompts due to RPC error:', error)
     }
+
+    // Set prompts locally for the host
+    setPromptList(finalPrompts.map((p: any) => p.text))
+    setCountdown(3)
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === 1) {
+          clearInterval(countdownInterval)
+          return null
+        }
+        return (prev ?? 1) - 1
+      })
+    }, 1000)
 
     await roomChannelRef.current?.send({
       type: 'broadcast',
@@ -139,6 +152,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
       }
     })
   }
+
 
   const players = useMemo(() => {
     return presence.map((u: any) => ({
@@ -154,7 +168,11 @@ export default function GamePage({ params }: { params: { id: string } }) {
 
         {isChannelReady && (
           <>
-            {isHost ? (
+            {promptList.length > 0 && countdown === null ? (
+              <div className="text-center font-bold text-green-400 text-xl my-4 animate-pulse">
+                🟢 Game in Progress
+              </div>
+            ) : isHost ? (
               <button
                 onClick={handleStartGame}
                 className="arcade-button bg-green-600 hover:bg-green-700"
@@ -168,6 +186,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
             )}
           </>
         )}
+
 
         <div className="bg-arcade-background border border-arcade-secondary rounded-xl p-6 shadow-inner">
           <TypingPrompt prompt={targetText} userInput={text} />
