@@ -28,6 +28,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const [countdown, setCountdown] = useState<number | null>(null)
   const [isChannelReady, setIsChannelReady] = useState(false)
   const [previousPromptTextLength, setPreviousPromptTextLength] = useState(0)
+  const [timePassed, setTimePassed] = useState<number | null>(null)
+  const [isEliminated, setIsEliminated] = useState(false)
+  const [winnerId, setWinnerId] = useState(null)
 
   const roomChannelRef = useRef<any>(null)
   const targetText = promptList[currentPromptIndex] || ''
@@ -73,6 +76,18 @@ export default function GamePage({ params }: { params: { id: string } }) {
       .on('broadcast', { event: 'game_reset' }, async ({ payload }) => {
         await handleReset()
       })
+      .on('broadcast', { event: 'game_elimination' }, async ({ payload }) => {
+        const { newElimination } = payload;
+        console.log("eliminated", newElimination)
+        if (username === newElimination) {
+          setIsEliminated(true);
+        }
+      })
+      .on('broadcast', { event: 'game_winner' }, async ({ payload }) => {
+        const { winnerId } = payload;
+        console.log("winner", winnerId)
+        setWinnerId(winnerId);
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setIsChannelReady(true)
@@ -95,6 +110,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
       const elapsed = (Date.now() - startTime) / 1000 / 60
       const words = (text.length + previousPromptTextLength) / 5
       setWpm(Math.round(words / elapsed))
+      setTimePassed(prev => (prev ?? 0) + (elapsed * 60));
     }
   }, [text, startTime])
 
@@ -102,7 +118,8 @@ export default function GamePage({ params }: { params: { id: string } }) {
     const interval = setInterval(() => {
       roomChannelRef.current?.track({
         id: username,
-        words: wpm
+        words: wpm,
+        isEliminated: isEliminated
       })
     }, 500)
 
@@ -117,6 +134,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
     setWpm(0)
     setCurrentPromptIndex(0)
     setPromptList([])
+    setIsEliminated(false)
+    setTimePassed(null)
+    setWinnerId(null)
 
     if (isHost) {
       await hostReset()
@@ -173,13 +193,50 @@ export default function GamePage({ params }: { params: { id: string } }) {
     })
   }
 
-
   const players = useMemo(() => {
     return presence.map((u: any) => ({
       id: u.id,
-      wpm: u.words
+      wpm: u.words,
+      isEliminated: u.isEliminated
     }))
   }, [presence])
+
+  // Host runs elimination logic till we move this to backend?
+  useEffect(() => {
+    if (isHost && timePassed && startTime && timePassed > 5) {
+      const state = roomChannelRef.current?.presenceState()
+      const flat = Object.values(state).flat()
+      setPresence(flat)
+      players.filter(p => !p.isEliminated)
+      const playersRemaining = players
+          .filter(p => !p.isEliminated)
+          .sort((a:any, b:any) => a.words - b.words);
+      const playerToElim = playersRemaining[0];
+      roomChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'game_elimination',
+        payload: {
+          newElimination: playerToElim.id
+        }
+      })
+      if(playerToElim.id === username) {
+        setIsEliminated(true);
+      }
+      // TODO: change to 3 so we can transition to 1 v 1
+      // declare winner
+      if (playersRemaining.length === 2) {
+        roomChannelRef.current?.send({
+          type: 'broadcast',
+          event: 'game_winner',
+          payload: {
+            winnerId: playersRemaining[1].id
+          }
+        })
+        setWinnerId(playersRemaining[1].id);
+      }
+      setTimePassed(0)
+    }
+  }, [startTime, isHost, timePassed])
 
   return (
     <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
@@ -189,8 +246,22 @@ export default function GamePage({ params }: { params: { id: string } }) {
         {isChannelReady && (
           <>
             {promptList.length > 0 && countdown === null ? (
-              <div className="text-center font-bold text-green-400 text-xl my-4 animate-pulse">
-                🟢 Game in Progress
+              <div>
+                {!winnerId && (
+                  <div className="text-center font-bold text-green-400 text-xl my-4 animate-pulse">
+                    🟢 Game in Progress
+                  </div>
+                )}
+                {!winnerId && isEliminated && (
+                  <div className="text-center font-bold text-red-600 text-xl my-4 animate-pulse">
+                    🔴 You've been Eliminated
+                  </div>
+                )}
+                {winnerId && (
+                    <div className="text-center font-bold text-yellow-400 text-xl my-4 animate-pulse">
+                      🏆🏆 {winnerId === username ? "You're" : winnerId + " is"} the Winner 🏆🏆
+                    </div>
+                )}
               </div>
             ) : isHost ? (
               <button
@@ -210,6 +281,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
 
         <div className="bg-arcade-background border border-arcade-secondary rounded-xl p-6 shadow-inner">
           <TypingPrompt prompt={targetText} userInput={text} />
+          { /* ToDo: remove isHost from disabled once time tracking fixed*/}
           <TypingInput
             value={text}
             onChange={(newVal) => {
@@ -220,7 +292,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
                 setText('')
               }
             }}
-            disabled={text === targetText || countdown !== null}
+            disabled={text === targetText || countdown !== null || (!isHost && isEliminated)}
           />
         </div>
 

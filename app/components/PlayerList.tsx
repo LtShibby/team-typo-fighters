@@ -16,7 +16,7 @@ export default function PlayerList({ players, currentUser, currentWPM }: { playe
       {sortedPlayers
         .map((p) => (
         <li key={p.id} className="flex justify-between">
-          <span className={p.id === currentUser ? 'text-arcade-accent' : ''}>
+          <span className={p.id === currentUser ? 'text-arcade-accent' : ''} style={{textDecoration: p.isEliminated ? 'line-through' : 'inherit'}}>
             {p.id === currentUser ? `${p.id} (You)` : p.id}
           </span>
           <span className="text-arcade-secondary">{p.id === currentUser ? currentWPM: p.wpm} WPM</span>
