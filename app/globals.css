@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  .arcade-button {
+    @apply px-6 py-3 bg-arcade-primary text-arcade-text font-arcade 
+           rounded-lg shadow-lg hover:bg-opacity-90 transition-all
+           transform hover:scale-105 active:scale-95;
+  }
+  
+  .arcade-input {
+    @apply px-4 py-2 bg-arcade-background border-2 border-arcade-secondary
+           text-arcade-text font-arcade rounded-lg focus:outline-none
+           focus:border-arcade-accent;
+  }
+} 
