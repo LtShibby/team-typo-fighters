@@ -1,85 +1,89 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
 
-export default function Home() {
-  const [username, setUsername] = useState('')
-  const [gameId, setGameId] = useState('')
-  const router = useRouter()
-
-  const createGame = () => {
-    if (!username) return
-    const newGameId = Math.random().toString(36).substring(2, 8)
-    router.push(`/game/${newGameId}?username=${username}`)
-  }
-
-  const joinGame = () => {
-    if (!username || !gameId) return
-    router.push(`/game/${gameId}?username=${username}`)
-  }
-
+export default function LandingPage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4">
-      <h1 className="text-4xl font-arcade text-arcade-accent mb-8 animate-pulse-slow">
-        Team Typo Fighters
-      </h1>
-      
-      <div className="w-full max-w-md space-y-6">
-        <div className="space-y-2">
-          <label htmlFor="username" className="block text-arcade-secondary font-arcade">
-            Enter Username
-          </label>
-          <input
-            id="username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="arcade-input w-full"
-            placeholder="Player1"
-          />
-        </div>
+    <main className="min-h-screen bg-arcade-background text-arcade-text font-sans overflow-x-hidden">
+      <div className="max-w-5xl mx-auto px-4 py-24 space-y-24">
 
-        <div className="space-y-4">
-          <button
-            onClick={createGame}
-            className="arcade-button w-full"
+        {/* Hero */}
+        <motion.section
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center space-y-6"
+        >
+          <h1 className="text-4xl sm:text-5xl font-arcade text-arcade-accent tracking-widest">
+            Team Typo Fighters
+          </h1>
+          <motion.p
+            className="text-lg sm:text-xl text-arcade-secondary"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
           >
-            Create New Game
-          </button>
+            A real-time typing battle royale. Outtype. Outlive. Outlast.
+          </motion.p>
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link href="/play">
+              <button className="arcade-button mt-6 px-8 py-3 text-lg animate-pulse-slow">
+                Play Now
+              </button>
+            </Link>
+          </motion.div>
+        </motion.section>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-arcade-secondary"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-arcade-background text-arcade-secondary">
-                OR
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="gameId" className="block text-arcade-secondary font-arcade">
-              Join Existing Game
-            </label>
-            <input
-              id="gameId"
-              type="text"
-              value={gameId}
-              onChange={(e) => setGameId(e.target.value)}
-              className="arcade-input w-full"
-              placeholder="Game ID"
-            />
-            <button
-              onClick={joinGame}
-              className="arcade-button w-full"
+        {/* How It Works */}
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          transition={{ staggerChildren: 0.2 }}
+          className="grid sm:grid-cols-3 gap-10 text-center"
+        >
+          {[
+            ['Enter Username', 'No account needed. Just jump in.'],
+            ['Create or Join', 'Spin up a game or use a room code.'],
+            ['Type to Survive', 'Last one standing wins. WPM matters.'],
+          ].map(([title, desc], idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: idx * 0.2 }}
+              className="space-y-2"
             >
-              Join Game
-            </button>
-          </div>
-        </div>
+              <h3 className="text-xl font-bold text-arcade-accent">{
+                `${idx + 1}. ${title}`
+              }</h3>
+              <p className="text-sm text-arcade-muted">{desc}</p>
+            </motion.div>
+          ))}
+        </motion.section>
+
+        {/* Game Modes */}
+        <motion.section
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className="text-center space-y-4"
+        >
+          <h2 className="text-3xl font-bold text-arcade-accent">Game Modes</h2>
+          <p className="text-md text-arcade-muted max-w-xl mx-auto">
+            Survive elimination every 20 seconds in <span className="text-arcade-accent">Survival Mode</span>, then face off in a <span className="text-arcade-accent">1v1 Tug-of-Words</span> finale.
+          </p>
+        </motion.section>
+
+        {/* Footer */}
+        <footer className="text-center text-sm text-arcade-muted pt-10 border-t border-arcade-border">
+          Built with 💀 and ☕ by Team Typo Fighters for ACV Hackathon 2025
+        </footer>
       </div>
     </main>
   )
-} 
+}

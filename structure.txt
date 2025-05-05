@@ -1,0 +1,23 @@
+.
+├── app
+│   ├── api
+│   │   └── game
+│   ├── game
+│   │   └── [id]
+│   ├── globals.css
+│   ├── landing
+│   │   └── page.tsx
+│   ├── layout.tsx
+│   └── page.tsx
+├── next-env.d.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── README.md
+├── structure.txt
+├── supabase
+│   └── migrations
+├── tailwind.config.ts
+└── tsconfig.json
+
+9 directories, 12 files

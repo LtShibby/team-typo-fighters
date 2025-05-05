@@ -1,6 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 
 @layer base {
   body {
@@ -19,5 +21,11 @@
     @apply px-4 py-2 bg-arcade-background border-2 border-arcade-secondary
            text-arcade-text font-arcade rounded-lg focus:outline-none
            focus:border-arcade-accent;
+  }
+
+  .arcade-button {
+    @apply bg-arcade-primary text-arcade-text font-arcade rounded-lg shadow-lg
+           hover:bg-opacity-90 transform transition-all duration-200;
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
   }
 } 

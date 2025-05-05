@@ -5,83 +5,92 @@ import { useState, useEffect } from 'react'
 
 export default function GamePage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams()
-  const username = searchParams.get('username')
+
+  // Extract and sanitize
+  const gameId = params?.id || 'unknown'
+  const username = searchParams?.get('username') || 'Player'
+
+  // Local state
   const [text, setText] = useState('')
   const [targetText] = useState('The quick brown fox jumps over the lazy dog.')
   const [startTime, setStartTime] = useState<number | null>(null)
   const [wpm, setWpm] = useState(0)
 
+  // Track when user starts typing
   useEffect(() => {
     if (!startTime && text.length === 1) {
       setStartTime(Date.now())
     }
   }, [text, startTime])
 
+  // Calculate WPM
   useEffect(() => {
     if (startTime) {
-      const timeElapsed = (Date.now() - startTime) / 1000 / 60 // in minutes
-      const wordsTyped = text.length / 5 // assuming average word length of 5
+      const timeElapsed = (Date.now() - startTime) / 1000 / 60
+      const wordsTyped = text.length / 5
       setWpm(Math.round(wordsTyped / timeElapsed))
     }
   }, [text, startTime])
 
+  const handleReset = () => {
+    setText('')
+    setStartTime(null)
+    setWpm(0)
+  }
+
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-arcade text-arcade-accent">
-            Game Room: {params.id}
+    <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
+      <div className="max-w-3xl mx-auto space-y-10">
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+          <h1 className="text-3xl sm:text-4xl font-arcade text-arcade-accent tracking-wide">
+            Game Room: <span className="text-arcade-secondary">{gameId}</span>
           </h1>
-          <div className="text-arcade-secondary font-arcade">
+          <span className="text-arcade-secondary font-arcade text-sm sm:text-base">
             Player: {username}
-          </div>
+          </span>
         </div>
 
-        <div className="bg-arcade-background p-6 rounded-lg border-2 border-arcade-secondary">
-          <div className="font-arcade text-arcade-text mb-4">
-            {targetText.split('').map((char, index) => (
-              <span
-                key={index}
-                className={`
-                  ${index < text.length 
-                    ? text[index] === char 
-                      ? 'text-arcade-secondary' 
-                      : 'text-arcade-primary'
-                    : 'text-arcade-text'
-                  }
-                `}
-              >
-                {char}
-              </span>
-            ))}
+        {/* Typing Area */}
+        <div className="bg-arcade-background border border-arcade-secondary rounded-xl p-6 shadow-inner">
+          <div className="text-xl sm:text-2xl font-arcade mb-4 leading-relaxed break-words">
+            {targetText.split('').map((char, index) => {
+              const isTyped = index < text.length
+              const isCorrect = isTyped && text[index] === char
+              const className = isTyped
+                ? isCorrect
+                  ? 'text-arcade-secondary'
+                  : 'text-arcade-primary'
+                : 'text-arcade-text'
+              return (
+                <span key={index} className={className}>
+                  {char}
+                </span>
+              )
+            })}
           </div>
-          
+
           <input
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="arcade-input w-full"
+            className="arcade-input w-full mt-2"
             placeholder="Start typing..."
             disabled={text === targetText}
           />
         </div>
 
-        <div className="flex justify-between items-center">
-          <div className="text-arcade-secondary font-arcade">
-            WPM: {wpm}
+        {/* Footer Stats */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="text-lg font-arcade text-arcade-secondary">
+            WPM: <span className="font-bold text-arcade-accent">{wpm}</span>
           </div>
-          <button
-            onClick={() => {
-              setText('')
-              setStartTime(null)
-              setWpm(0)
-            }}
-            className="arcade-button"
-          >
+          <button onClick={handleReset} className="arcade-button">
             Reset
           </button>
         </div>
       </div>
     </main>
   )
-} 
+}
