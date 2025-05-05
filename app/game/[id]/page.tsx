@@ -143,14 +143,23 @@ export default function GamePage({ params }: { params: { id: string } }) {
       <div className="max-w-3xl mx-auto space-y-10">
         <GameHeader roomId={gameId} username={username} />
 
-        {isChannelReady && isHost && (
-          <button
-            onClick={handleStartGame}
-            className="arcade-button bg-green-600 hover:bg-green-700"
-          >
-            Start Game
-          </button>
+        {isChannelReady && (
+          <>
+            {isHost ? (
+              <button
+                onClick={handleStartGame}
+                className="arcade-button bg-green-600 hover:bg-green-700"
+              >
+                Start Game
+              </button>
+            ) : (
+              <div className="text-center font-bold text-yellow-400 text-xl my-4">
+                WAITING FOR HOST TO START THE GAME
+              </div>
+            )}
+          </>
         )}
+
 
         <div className="bg-arcade-background border border-arcade-secondary rounded-xl p-6 shadow-inner">
           <TypingPrompt prompt={targetText} userInput={text} />
