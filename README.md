@@ -3,9 +3,9 @@
 A real-time multiplayer typing battle game built with Next.js 14, React 18, TypeScript, and Tailwind CSS.
 
 ## Hackathon Team Members
-Matthew Wozniak - Lead
-Conner Westover
-Alex Chung
+- Matthew Wozniak - Lead
+- Conner Westover
+- Alex Chung
 
 ## Features
 
