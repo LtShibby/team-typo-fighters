@@ -29,7 +29,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const [isChannelReady, setIsChannelReady] = useState(false)
 
   const roomChannelRef = useRef<any>(null)
-
   const targetText = promptList[currentPromptIndex] || ''
 
   const isHost = useMemo(() => {
@@ -38,9 +37,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     const channel = supabase.channel(gameId, {
-      config: {
-        presence: { key: username }
-      }
+      config: { presence: { key: username } }
     })
 
     roomChannelRef.current = channel
@@ -57,8 +54,10 @@ export default function GamePage({ params }: { params: { id: string } }) {
       .on('broadcast', { event: 'game_start' }, ({ payload }) => {
         const { prompts, startTime } = payload
         setPromptList(prompts.map((p: any) => p.text))
-        const timeUntilStart = startTime - Date.now()
-        setCountdown(Math.ceil(timeUntilStart / 1000))
+
+        const timeUntilStart = Math.max(startTime - Date.now(), 0)
+        const initialCountdown = Math.ceil(timeUntilStart / 1000)
+        setCountdown(initialCountdown)
 
         const countdownInterval = setInterval(() => {
           setCountdown(prev => {
@@ -116,20 +115,44 @@ export default function GamePage({ params }: { params: { id: string } }) {
     const startTime = Date.now() + 3000
 
     const { data: prompts, error } = await supabase.rpc('get_game_prompts')
-    if (error || !prompts) {
-      console.error('Error fetching prompts:', error)
-      return
+
+    const fallbackPrompts = [
+      { text: 'Life before death. Strength before weakness. Journey before destination.' },
+      { text: 'Honor is not dead so long as he lives in the hearts of men.' },
+      { text: 'Some men may be stronger than others. That does not give them the right to dominate those who are weaker.' },
+      { text: 'You mustnt kneel to me. The Knights Radiant must stand again.' },
+      { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
+    ]
+
+    const finalPrompts = (!error && prompts?.length > 0) ? prompts : fallbackPrompts
+
+    if (error) {
+      console.warn('Using fallback prompts due to RPC error:', error)
     }
+
+    // Set prompts locally for the host
+    setPromptList(finalPrompts.map((p: any) => p.text))
+    setCountdown(3)
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === 1) {
+          clearInterval(countdownInterval)
+          return null
+        }
+        return (prev ?? 1) - 1
+      })
+    }, 1000)
 
     await roomChannelRef.current?.send({
       type: 'broadcast',
       event: 'game_start',
       payload: {
-        prompts,
+        prompts: finalPrompts,
         startTime
       }
     })
   }
+
 
   const players = useMemo(() => {
     return presence.map((u: any) => ({
@@ -145,7 +168,11 @@ export default function GamePage({ params }: { params: { id: string } }) {
 
         {isChannelReady && (
           <>
-            {isHost ? (
+            {promptList.length > 0 && countdown === null ? (
+              <div className="text-center font-bold text-green-400 text-xl my-4 animate-pulse">
+                🟢 Game in Progress
+              </div>
+            ) : isHost ? (
               <button
                 onClick={handleStartGame}
                 className="arcade-button bg-green-600 hover:bg-green-700"

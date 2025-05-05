@@ -12,6 +12,10 @@ export default function TypingInput({ value, onChange, disabled }: TypingInputPr
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onPaste={(e) => {
+        e.preventDefault()
+        alert('Nice try, but no pasting allowed.')
+      }}
       className="arcade-input w-full mt-2"
       placeholder="Start typing..."
       disabled={disabled}
