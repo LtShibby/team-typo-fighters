@@ -10,8 +10,8 @@ import TypingInput from '@/app/components/TypingInput'
 import PlayerList from '@/app/components/PlayerList'
 
 const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_API_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_API_KEY!
 )
 
 export default function GamePage({ params }: { params: { id: string } }) {
@@ -20,12 +20,21 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const username = searchParams?.get('username') || 'Player'
 
   const [text, setText] = useState('')
-  const [targetText] = useState('The quick brown fox jumps over the lazy dog.')
+  const [promptList, setPromptList] = useState<string[]>([])
+  const [currentPromptIndex, setCurrentPromptIndex] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [wpm, setWpm] = useState(0)
   const [presence, setPresence] = useState<any[]>([])
+  const [countdown, setCountdown] = useState<number | null>(null)
+  const [isChannelReady, setIsChannelReady] = useState(false)
 
   const roomChannelRef = useRef<any>(null)
+
+  const targetText = promptList[currentPromptIndex] || ''
+
+  const isHost = useMemo(() => {
+    return presence.length > 0 && presence[0]?.id === username
+  }, [presence, username])
 
   useEffect(() => {
     const channel = supabase.channel(gameId, {
@@ -37,15 +46,35 @@ export default function GamePage({ params }: { params: { id: string } }) {
     roomChannelRef.current = channel
 
     channel
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState()
-          const flat = Object.values(state).flat()
-          setPresence(flat)
-        })
-        .on('presence', { event: 'join' }, ({ newPresences }) => {
-          console.log('[join]', newPresences)
-        })
-        .subscribe()
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState()
+        const flat = Object.values(state).flat()
+        setPresence(flat)
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
+        console.log('[join]', newPresences)
+      })
+      .on('broadcast', { event: 'game_start' }, ({ payload }) => {
+        const { prompts, startTime } = payload
+        setPromptList(prompts.map((p: any) => p.text))
+        const timeUntilStart = startTime - Date.now()
+        setCountdown(Math.ceil(timeUntilStart / 1000))
+
+        const countdownInterval = setInterval(() => {
+          setCountdown(prev => {
+            if (prev === 1) {
+              clearInterval(countdownInterval)
+              return null
+            }
+            return (prev ?? 1) - 1
+          })
+        }, 1000)
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsChannelReady(true)
+        }
+      })
 
     return () => {
       channel.unsubscribe()
@@ -66,7 +95,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
     }
   }, [text, startTime])
 
-  // Broadcast WPM
   useEffect(() => {
     const interval = setInterval(() => {
       roomChannelRef.current?.track({
@@ -84,6 +112,25 @@ export default function GamePage({ params }: { params: { id: string } }) {
     setWpm(0)
   }
 
+  const handleStartGame = async () => {
+    const startTime = Date.now() + 3000
+
+    const { data: prompts, error } = await supabase.rpc('get_game_prompts')
+    if (error || !prompts) {
+      console.error('Error fetching prompts:', error)
+      return
+    }
+
+    await roomChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'game_start',
+      payload: {
+        prompts,
+        startTime
+      }
+    })
+  }
+
   const players = useMemo(() => {
     return presence.map((u: any) => ({
       id: u.id,
@@ -92,33 +139,54 @@ export default function GamePage({ params }: { params: { id: string } }) {
   }, [presence])
 
   return (
-      <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
-        <div className="max-w-3xl mx-auto space-y-10">
-          <GameHeader roomId={gameId} username={username} />
+    <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
+      <div className="max-w-3xl mx-auto space-y-10">
+        <GameHeader roomId={gameId} username={username} />
 
-          <div className="bg-arcade-background border border-arcade-secondary rounded-xl p-6 shadow-inner">
-            <TypingPrompt prompt={targetText} userInput={text} />
-            <TypingInput
-                value={text}
-                onChange={setText}
-                disabled={text === targetText}
-            />
-          </div>
+        {isChannelReady && isHost && (
+          <button
+            onClick={handleStartGame}
+            className="arcade-button bg-green-600 hover:bg-green-700"
+          >
+            Start Game
+          </button>
+        )}
 
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="text-lg font-arcade text-arcade-secondary">
-              WPM: <span className="font-bold text-arcade-accent">{wpm}</span>
-            </div>
-            <button onClick={handleReset} className="arcade-button">
-              Reset
-            </button>
-          </div>
-
-          <div className="border-t border-arcade-secondary pt-4">
-            <h2 className="font-arcade text-arcade-accent text-lg mb-2">Players</h2>
-            <PlayerList players={players} currentUser={username} />
-          </div>
+        <div className="bg-arcade-background border border-arcade-secondary rounded-xl p-6 shadow-inner">
+          <TypingPrompt prompt={targetText} userInput={text} />
+          <TypingInput
+            value={text}
+            onChange={(newVal) => {
+              setText(newVal)
+              if (newVal === targetText) {
+                setCurrentPromptIndex(prev => prev + 1)
+                setText('')
+              }
+            }}
+            disabled={text === targetText || countdown !== null}
+          />
         </div>
-      </main>
+
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="text-lg font-arcade text-arcade-secondary">
+            WPM: <span className="font-bold text-arcade-accent">{wpm}</span>
+          </div>
+          <button onClick={handleReset} className="arcade-button">
+            Reset
+          </button>
+        </div>
+
+        {countdown !== null && (
+          <div className="text-center font-bold text-2xl text-arcade-accent">
+            Game starts in: {countdown}
+          </div>
+        )}
+
+        <div className="border-t border-arcade-secondary pt-4">
+          <h2 className="font-arcade text-arcade-accent text-lg mb-2">Players</h2>
+          <PlayerList players={players} currentUser={username} />
+        </div>
+      </div>
+    </main>
   )
 }
