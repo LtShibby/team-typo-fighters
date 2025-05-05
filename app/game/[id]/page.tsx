@@ -27,6 +27,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const [presence, setPresence] = useState<any[]>([])
   const [countdown, setCountdown] = useState<number | null>(null)
   const [isChannelReady, setIsChannelReady] = useState(false)
+  const [previousPromptTextLength, setPreviousPromptTextLength] = useState(0)
 
   const roomChannelRef = useRef<any>(null)
   const targetText = promptList[currentPromptIndex] || ''
@@ -69,6 +70,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
           })
         }, 1000)
       })
+      .on('broadcast', { event: 'game_reset' }, async ({ payload }) => {
+        await handleReset()
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setIsChannelReady(true)
@@ -89,7 +93,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (startTime) {
       const elapsed = (Date.now() - startTime) / 1000 / 60
-      const words = text.length / 5
+      const words = (text.length + previousPromptTextLength) / 5
       setWpm(Math.round(words / elapsed))
     }
   }, [text, startTime])
@@ -100,15 +104,31 @@ export default function GamePage({ params }: { params: { id: string } }) {
         id: username,
         words: wpm
       })
-    }, 2000)
+    }, 500)
 
     return () => clearInterval(interval)
   }, [wpm, username])
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setText('')
+    setPreviousPromptTextLength(0)
     setStartTime(null)
+    setCountdown(null)
     setWpm(0)
+    setCurrentPromptIndex(0)
+    setPromptList([])
+
+    if (isHost) {
+      await hostReset()
+    }
+  }
+
+  const hostReset = async () => {
+    await roomChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'game_reset',
+      payload: {}
+    })
   }
 
   const handleStartGame = async () => {
@@ -195,6 +215,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
             onChange={(newVal) => {
               setText(newVal)
               if (newVal === targetText) {
+                setPreviousPromptTextLength(prev => prev + promptList[currentPromptIndex].length);
                 setCurrentPromptIndex(prev => prev + 1)
                 setText('')
               }
@@ -207,9 +228,11 @@ export default function GamePage({ params }: { params: { id: string } }) {
           <div className="text-lg font-arcade text-arcade-secondary">
             WPM: <span className="font-bold text-arcade-accent">{wpm}</span>
           </div>
-          <button onClick={handleReset} className="arcade-button">
-            Reset
-          </button>
+          {isHost && (
+            <button onClick={handleReset} className="arcade-button">
+              Reset
+            </button>
+          )}
         </div>
 
         {countdown !== null && (

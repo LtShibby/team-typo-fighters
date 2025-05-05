@@ -9,7 +9,7 @@ import { useMemo } from 'react'
 // ]
 
 
-export default function PlayerList({ players, currentUser, currentWPM }: { players: any[], currentUser: string }) {
+export default function PlayerList({ players, currentUser, currentWPM }: { players: any[], currentUser: string, currentWPM: number }) {
   const sortedPlayers = useMemo(() => players.sort((a, b) => a.wpm - b.wpm), [players]);
   return (
     <ul className="text-sm space-y-1 font-arcade">
