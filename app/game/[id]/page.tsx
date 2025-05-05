@@ -1,13 +1,22 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import {useState, useEffect, useMemo, useCallback} from 'react'
+import { createClient } from '@supabase/supabase-js'
 
 // 🧩 Components
 import GameHeader from '@/app/components/GameHeader'
 import TypingPrompt from '@/app/components/TypingPrompt'
 import TypingInput from '@/app/components/TypingInput'
 import PlayerList from '@/app/components/PlayerList'
+
+class PresenceState {
+  public presence_ref?: string;
+  public id?: string;
+  public words?: number;
+}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_API_KEY!
 
 export default function GamePage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams()
@@ -36,19 +45,56 @@ export default function GamePage({ params }: { params: { id: string } }) {
     }
   }, [text, startTime])
 
+  const [presence, setPresence] = useState<PresenceState[]>([])
+  const players = useMemo(() => {
+    return presence?.map(u => {
+      return {
+        id: u.id,
+        wpm: u.words
+      }
+    })
+  }, [presence])
+
+
+  // Room state
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  // Join a room/topic
+  const roomChannel = supabase.channel(gameId, {
+    config: {
+      presence: { key: username }
+    }
+  })
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      roomChannel.track({
+        id: username,
+        words: wpm
+      })
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Receive Presence updates
+  const presenceChanged = () => {
+    const newState = roomChannel.presenceState()
+    console.log(newState);
+  }
+
+  roomChannel
+      .on('presence', { event: 'sync' }, () => presenceChanged())
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log(newPresences);
+        setPresence(newPresences);
+      })
+      .subscribe()
+
   const handleReset = () => {
     setText('')
     setStartTime(null)
     setWpm(0)
   }
-
-  // 🔧 Temporary mocked player list
-  const mockPlayers = [
-    { id: username, wpm },
-    { id: 'Zane', wpm: 68 },
-    { id: 'Fairuz', wpm: 74 },
-    { id: 'Connor', wpm: 59 },
-  ]
 
   return (
     <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
@@ -76,7 +122,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
 
         <div className="border-t border-arcade-secondary pt-4">
           <h2 className="font-arcade text-arcade-accent text-lg mb-2">Players</h2>
-          <PlayerList players={mockPlayers} currentUser={username} />
+          <PlayerList players={players ?? []} currentUser={username} />
         </div>
       </div>
     </main>
