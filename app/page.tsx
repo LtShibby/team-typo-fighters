@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { pingSupabase } from './pingSupabase' // ✅ Make sure this path is correct
+// import { pingSupabase } from './pingSupabase'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 
@@ -10,7 +10,7 @@ export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
-    pingSupabase()
+    // pingSupabase()
   }, [])
 
   return (
