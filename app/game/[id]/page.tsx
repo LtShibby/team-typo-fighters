@@ -193,7 +193,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
 
         <div className="border-t border-arcade-secondary pt-4">
           <h2 className="font-arcade text-arcade-accent text-lg mb-2">Players</h2>
-          <PlayerList players={players} currentUser={username} />
+          <PlayerList players={players} currentUser={username} currentWPM={wpm} />
         </div>
       </div>
     </main>
