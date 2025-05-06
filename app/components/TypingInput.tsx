@@ -9,7 +9,9 @@ type TypingInputProps = {
 }
 
 export default function TypingInput({ value, prompt, onChange, onComplete, disabled }: TypingInputProps) {
-  return (
+  return disabled ? (
+      <span className="font-arcade text-red-600">You've been eliminated!</span>
+      ): (
     <input
       type="text"
       value={value}
@@ -25,6 +27,7 @@ export default function TypingInput({ value, prompt, onChange, onComplete, disab
         alert('Nice try, but no pasting allowed.')
       }}
       className="arcade-input w-full mt-2"
+      style={{ display: disabled ? 'none' : '' }}
       placeholder="Start typing..."
       disabled={disabled}
     />

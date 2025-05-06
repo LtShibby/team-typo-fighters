@@ -96,7 +96,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
       setIsTugMode(true)
       setTugPlayer1(player1)
       setTugPlayer2(player2)
-      setTugStartTime(tugStartTime)
+      setTugStartTime(startTime)
     }
   })
 
@@ -136,7 +136,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         if (playerToElim.id === username) {
           setFinalStats()
         }
-        const remainingPlayers = players.filter(p => p.id !== playerToElim.id)
+        const remainingPlayers = playersRemaining.filter(p => p.id !== playerToElim.id)
         if (remainingPlayers.length === 2) {
           const tugStartTime = Date.now() + 5000;
           broadcastTugModeStart(remainingPlayers[0].id, remainingPlayers[1].id, tugStartTime)
@@ -182,7 +182,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         throw new Error('Invalid prompt format from API');
       }
 
-      console.log('Fetched prompts from Railway:', finalPrompts);
+      console.log('Fetched prompts from Railway:', finalPrompts)
     } catch (err) {
       console.warn('Failed to fetch from Railway, using fallback prompts:', err);
       finalPrompts = [
@@ -193,12 +193,21 @@ export default function GamePage({ params }: { params: { id: string } }) {
         { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
       ];
     }
+    setPrompts(finalPrompts)
+    setCountdown(3)
 
-    setPrompts(finalPrompts);
-    setCountdown(3);
+    await broadcastGameStart(finalPrompts, startTime)
 
-    await broadcastGameStart(finalPrompts, startTime);
-  };
+    if (isHost && players.length === 2) {
+      const tugStartTime = Date.now() + 5000;
+      await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime)
+      setIsTugMode(true)
+      setTugPlayer1(players[0].id)
+      setTugPlayer2(players[1].id)
+      setTugStartTime(tugStartTime)
+      return
+    }
+  }
 
   if (!isChannelReady) {
     return <div className="text-arcade-text">Loading...</div>
@@ -259,7 +268,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
                               setPrompts(prev => prev.slice(1))
                               updateText('')
                             }}
-                            disabled={false}
+                            disabled={isEliminated}
                         />
                       </>
                   )}

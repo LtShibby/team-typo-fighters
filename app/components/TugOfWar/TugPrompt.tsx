@@ -6,6 +6,8 @@ interface TugPromptProps {
   onInputChange: (text: string) => void
   isCooldown: boolean
   cooldownEndTime: number | null
+  gameStarted: boolean
+  isSpectator: boolean
 }
 
 export function TugPrompt({
@@ -13,7 +15,9 @@ export function TugPrompt({
   currentInput,
   onInputChange,
   isCooldown,
-  cooldownEndTime
+  cooldownEndTime,
+  gameStarted,
+  isSpectator
 }: TugPromptProps) {
   const [cooldownTimeLeft, setCooldownTimeLeft] = useState<number>(0)
 
@@ -40,14 +44,14 @@ export function TugPrompt({
       <div className="mb-8">
         {isCooldown ? (
           <div className="text-center">
-            <div className="text-3xl mb-2 text-arcade-text">Round Over!</div>
+            <div className="text-3xl mb-2 text-arcade-text">{gameStarted ? "Round Over!" : "Prepare for the final fight!"}</div>
             <div className="text-lg text-arcade-text">
               Next round in {(cooldownTimeLeft / 1000).toFixed(1)}s
             </div>
           </div>
         ) : (
           <div className="text-center">
-            <div className="text-3xl mb-2 text-arcade-text">Type This:</div>
+            <div className="text-3xl mb-2 text-arcade-text">{isSpectator ? "The final fighters are typing this:" : "Type This:"}</div>
             <div className="text-2xl font-mono">
               {prompt.split('').map((char, index) => {
                 const isTyped = index < currentInput.length
@@ -68,7 +72,7 @@ export function TugPrompt({
         )}
       </div>
 
-      <div className="relative">
+      <div className="relative" style={{display: isSpectator ? 'none' : ''}}>
         <input
           type="text"
           value={currentInput}
@@ -80,4 +84,4 @@ export function TugPrompt({
       </div>
     </div>
   )
-} 
+}

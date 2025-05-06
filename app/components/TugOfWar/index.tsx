@@ -7,7 +7,8 @@ import { TugScoreboard } from './TugScoreboard'
 
 const ROUND_TIMEOUT = 30000 // 30 seconds
 const COOLDOWN_DURATION = 3000 // 3 seconds
-const WINNING_SCORE = 3
+const COUNTDOWN_DURATION = 7000 // 7 seconds
+const WINNING_SCORE = 5
 
 const initialState: TugGameState = {
   currentPrompt: '',
@@ -16,8 +17,10 @@ const initialState: TugGameState = {
   scores: {},
   roundWinner: null,
   gameWinner: null,
-  isCooldown: false,
-  cooldownEndTime: null
+  isCooldown: true,
+  cooldownEndTime: Date.now() + COUNTDOWN_DURATION,
+  gameStarted: false,
+  isSpectator: true
 }
 
 function tugGameReducer(state: TugGameState, event: TugGameEvent): TugGameState {
@@ -27,7 +30,9 @@ function tugGameReducer(state: TugGameState, event: TugGameEvent): TugGameState 
         ...state,
         currentPrompt: event.payload.prompts[0] || '',
         promptIndex: 0,
-        prompts: event.payload.prompts
+        prompts: event.payload.prompts,
+        isCooldown: true,
+        cooldownEndTime: Date.now() + COUNTDOWN_DURATION
       }
     case 'TUG_POINT_AWARDED':
       return {
@@ -73,7 +78,11 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
     prompts
   })
 
-  const { isChannelReady, players, broadcastElimination, broadcastWinner } = useGameChannel({
+  if (username === player1 || username === player2) {
+    state.isSpectator = false
+  }
+
+  const { isChannelReady, players, broadcastTugPointAwarded, broadcastWinner } = useGameChannel({
     gameId,
     username,
     onGameStart: (newPrompts) => {
@@ -81,6 +90,26 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
     },
     onElimination: (eliminatedPlayer) => {
       // Handle elimination if needed
+    },
+    onTugPointAwarded: (playerId, newScore) => {
+      state.scores[playerId] = newScore
+      state.roundWinner = playerId
+      // Check for winner
+      if (newScore >= WINNING_SCORE) {
+        broadcastWinner(playerId)
+      } else {
+        dispatch({ type: 'TUG_POINT_AWARDED', payload: { playerId: playerId, newScore } })
+        // Start cooldown
+        dispatch({ type: 'TUG_ROUND_END', payload: { winnerId: playerId } })
+        setTimeout(() => {
+          dispatch({ type: 'TUG_COOLDOWN_END' })
+          resetInput()
+          isProcessingRef.current = false
+        }, COOLDOWN_DURATION)
+      }
+    },
+    onTugModeStart: (newPrompts) => {
+
     },
     onWinner: (winnerId) => {
       dispatch({ type: 'TUG_WINNER', payload: { winnerId } })
@@ -109,7 +138,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
       // Debounce the broadcast
       broadcastTimeoutRef.current = setTimeout(() => {
         // Broadcast point awarded
-        broadcastElimination(username) // Reusing elimination event for point awarding
+        broadcastTugPointAwarded(username, newScore) // Reusing elimination event for point awarding
 
         dispatch({ type: 'TUG_POINT_AWARDED', payload: { playerId: username, newScore } })
 
@@ -172,6 +201,15 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
     )
   }
 
+  if (!state.gameStarted) {
+    setTimeout(() => {
+      dispatch({type: 'TUG_COOLDOWN_END'})
+      resetInput()
+      isProcessingRef.current = false
+      state.gameStarted = true
+    }, COOLDOWN_DURATION)
+  }
+
   return (
     <div className="flex flex-col items-center justify-center h-full">
       <TugScoreboard
@@ -186,6 +224,8 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
         onInputChange={handleInputChange}
         isCooldown={state.isCooldown}
         cooldownEndTime={state.cooldownEndTime}
+        gameStarted={state.gameStarted}
+        isSpectator={state.isSpectator}
       />
     </div>
   )

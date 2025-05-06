@@ -23,6 +23,8 @@ export interface TugGameState {
   gameWinner: string | null
   isCooldown: boolean
   cooldownEndTime: number | null
+  gameStarted: boolean
+  isSpectator: boolean
 }
 
 export type TugGameEvent =
