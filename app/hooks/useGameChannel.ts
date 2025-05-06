@@ -68,12 +68,17 @@ export function useGameChannel({
     })
   }
 
+  const [timeSinceLastTracked, setTimeSinceLastTracked] = useState(0)
+
   const trackPresence = (data: { words: number; isEliminated: boolean }) => {
     if (!channelRef.current) {
       console.warn('Channel not ready for tracking')
       return
     }
-    channelRef.current.track({ id: username, ...data })
+    if (Date.now() - timeSinceLastTracked > 500) {
+      channelRef.current.track({ id: username, ...data })
+      setTimeSinceLastTracked(Date.now())
+    }
   }
 
   useEffect(() => {

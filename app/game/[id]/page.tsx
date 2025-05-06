@@ -91,12 +91,13 @@ export default function GamePage({ params }: { params: { id: string } }) {
     updatePreviousPromptLength
   } = useTypingStats({
     onWpmChange: (newWpm) => {
+
       trackPresence({ words: newWpm, isEliminated: false })
     }
   })
 
   useEffect(() => {
-    if (isHost && timePassed && startTime && timePassed > 5) {
+    if (isHost && timePassed && startTime && timePassed > 10000) {
       const playersRemaining = players
         .filter(p => !p.isEliminated)
         .sort((a, b) => a.wpm - b.wpm)
