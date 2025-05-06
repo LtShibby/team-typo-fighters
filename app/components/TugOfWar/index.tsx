@@ -50,17 +50,15 @@ function tugGameReducer(state: TugGameState, event: TugGameEvent): TugGameState 
         cooldownEndTime: Date.now() + COOLDOWN_DURATION
       }
     case 'TUG_COOLDOWN_END':
+      const nextIndex = state.promptIndex + 1
+      const nextPrompt = state.prompts[nextIndex] || state.currentPrompt
       return {
         ...state,
         isCooldown: false,
         cooldownEndTime: null,
         roundWinner: null,
-        currentPrompt: state.promptIndex + 1 < state.prompts.length 
-          ? state.prompts[state.promptIndex + 1]
-          : state.currentPrompt,
-        promptIndex: state.promptIndex + 1 < state.prompts.length 
-          ? state.promptIndex + 1 
-          : state.promptIndex
+        currentPrompt: nextPrompt,
+        promptIndex: nextIndex
       }
     default:
       return state
@@ -89,15 +87,14 @@ export function TugOfWar({ gameId, username, prompts }: TugOfWarProps) {
     }
   })
 
-  const { text: currentInput, updateText: handleInputChange, reset: resetInput } = useTypingStats()
-  const isProcessingRef = useRef(false)
-  const broadcastTimeoutRef = useRef<NodeJS.Timeout>()
-
-  // Handle typing completion
-  useEffect(() => {
-    if (state.isCooldown || state.gameWinner || isProcessingRef.current) return
-
-    if (currentInput === state.currentPrompt) {
+  const { 
+    text: currentInput, 
+    updateText: handleInputChange, 
+    reset: resetInput 
+  } = useTypingStats({
+    onComplete: () => {
+      if (state.isCooldown || state.gameWinner || isProcessingRef.current) return
+      
       isProcessingRef.current = true
       const currentScore = state.scores[username] || 0
       const newScore = currentScore + 1
@@ -127,8 +124,12 @@ export function TugOfWar({ gameId, username, prompts }: TugOfWarProps) {
           }, COOLDOWN_DURATION)
         }
       }, 100) // Small delay to prevent rapid updates
-    }
-  }, [currentInput, state.currentPrompt, state.isCooldown, state.gameWinner, state.scores, username, broadcastElimination, broadcastWinner, resetInput])
+    },
+    currentPrompt: state.currentPrompt
+  })
+
+  const isProcessingRef = useRef(false)
+  const broadcastTimeoutRef = useRef<NodeJS.Timeout>()
 
   // Handle round timeout
   useEffect(() => {

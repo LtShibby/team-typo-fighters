@@ -3,9 +3,16 @@ import {useState, useEffect, useCallback} from 'react'
 interface UseTypingStatsProps {
   onWpmChange?: (wpm: number) => void
   onTimePassedChange?: (timePassed: number) => void
+  onComplete?: () => void
+  currentPrompt?: string
 }
 
-export function useTypingStats({ onWpmChange, onTimePassedChange }: UseTypingStatsProps = {}) {
+export function useTypingStats({ 
+  onWpmChange, 
+  onTimePassedChange,
+  onComplete,
+  currentPrompt 
+}: UseTypingStatsProps = {}) {
   const [text, setText] = useState('')
   const [startTime, setStartTime] = useState<number | null>(null)
   const [wpm, setWpm] = useState(0)
@@ -37,6 +44,13 @@ export function useTypingStats({ onWpmChange, onTimePassedChange }: UseTypingSta
       return () => clearInterval(interval)
     }
   }, [text, startTime, previousPromptTextLength, onWpmChange, onTimePassedChange])
+
+  // Check for prompt completion
+  useEffect(() => {
+    if (currentPrompt && text === currentPrompt) {
+      onComplete?.()
+    }
+  }, [text, currentPrompt, onComplete])
 
   const reset = () => {
     setText('')
