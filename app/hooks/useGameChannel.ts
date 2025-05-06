@@ -56,7 +56,7 @@ export function useGameChannel({
   const handlePresenceSync = (channel: any) => {
     const state = channel.presenceState()
     const flat = Object.values(state).flat()
-    console.log('received presence:', flat);
+    // console.log('received presence:', flat);
     setPresence(flat)
   }
 
