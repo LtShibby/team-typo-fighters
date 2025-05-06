@@ -20,12 +20,8 @@ export default function PlayerList({ players, currentUser, currentWPM, gameStart
             {p.id === currentUser ? `${p.id} (You)` : p.id}
           </span>
           {gameStarted
-              ? (
-                  <span className="text-arcade-secondary">{p.id === currentUser ? currentWPM: p.wpm} WPM</span>
-              )
-              : (
-                  <span className="text-arcade-secondary">Joined</span>
-              )
+              ? ( <span className="text-arcade-secondary">{p.id === currentUser ? currentWPM: p.wpm} WPM</span> )
+              : ( <span className="text-arcade-secondary">Joined</span> )
           }
         </li>
         ))}

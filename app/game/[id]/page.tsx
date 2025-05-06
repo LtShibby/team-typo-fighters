@@ -88,7 +88,8 @@ export default function GamePage({ params }: { params: { id: string } }) {
     timePassed,
     reset: resetTypingStats,
     updateText,
-    updatePreviousPromptLength
+    updatePreviousPromptLength,
+    resetTimePassed
   } = useTypingStats({
     onWpmChange: (newWpm) => {
 
@@ -109,6 +110,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         if (playersRemaining.length === 2) {
           broadcastWinner(playersRemaining[1].id)
         }
+        resetTimePassed()
       }
     }
   }, [isHost, timePassed, startTime, players, broadcastElimination, broadcastWinner])
@@ -201,6 +203,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
             {countdown !== null ? (
               <div className="text-center">
                 <div className="text-4xl font-bold">{countdown}</div>
+                <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true}/>
               </div>
             ) : prompts.length > 0 ? (
               <div>

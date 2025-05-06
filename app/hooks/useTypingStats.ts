@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import {useState, useEffect, useCallback} from 'react'
 
 interface UseTypingStatsProps {
   onWpmChange?: (wpm: number) => void
@@ -48,6 +48,10 @@ export function useTypingStats({ onWpmChange, onTimePassedChange }: UseTypingSta
     setPreviousPromptTextLength(length)
   }
 
+  const resetTimePassed = useCallback(() => {
+    setTimePassed(0)
+  }, [timePassed, setTimePassed])
+
   return {
     text,
     wpm,
@@ -55,6 +59,7 @@ export function useTypingStats({ onWpmChange, onTimePassedChange }: UseTypingSta
     startTime,
     reset,
     updateText,
-    updatePreviousPromptLength
+    updatePreviousPromptLength,
+    resetTimePassed
   }
-} 
+}

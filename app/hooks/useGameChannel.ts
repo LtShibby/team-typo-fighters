@@ -75,7 +75,8 @@ export function useGameChannel({
       console.warn('Channel not ready for tracking')
       return
     }
-    if (Date.now() - timeSinceLastTracked > 500) {
+    if (Date.now() - timeSinceLastTracked > 1000) {
+      // console.log('Tracking presence:', { data, username });
       channelRef.current.track({ id: username, ...data })
       setTimeSinceLastTracked(Date.now())
     }
