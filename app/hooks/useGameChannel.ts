@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_API_KEY!
 )
 
-interface Player {
+export interface Player {
   id: string
   wpm: number
   isEliminated: boolean
@@ -19,6 +19,8 @@ interface UseGameChannelProps {
   onGameReset?: () => void
   onElimination?: (eliminatedPlayer: string) => void
   onWinner?: (winnerId: string) => void
+  onTugPointAwarded?: (playerId: string, newScore: number) => void
+  onTugWinner?: (winnerId: string) => void
 }
 
 export function useGameChannel({
@@ -27,19 +29,18 @@ export function useGameChannel({
   onGameStart,
   onGameReset,
   onElimination,
-  onWinner
+  onWinner,
+  onTugPointAwarded,
+  onTugWinner
 }: UseGameChannelProps) {
   const [presence, setPresence] = useState<any[]>([])
   const [isChannelReady, setIsChannelReady] = useState(false)
   const [winnerId, setWinnerId] = useState<string | null>(null)
-  const roomChannelRef = useRef<any>(null)
-  const isInitializedRef = useRef(false)
+  const channelRef = useRef<any>(null)
 
   const isHost = useMemo(() => {
-    if (!isChannelReady) return false
-    // The first person in the presence array is the host
     return presence.length > 0 && presence[0].id === username
-  }, [isChannelReady, presence, username])
+  }, [presence, username])
 
   const players = useMemo(() => {
     return presence.map((u: any) => ({
@@ -49,31 +50,41 @@ export function useGameChannel({
     }))
   }, [presence])
 
-  useEffect(() => {
-    // Prevent multiple initializations
-    if (isInitializedRef.current) {
+  const handlePresenceSync = (channel: any) => {
+    const state = channel.presenceState()
+    const flat = Object.values(state).flat()
+    setPresence(flat)
+  }
+
+  const sendBroadcast = async (event: string, payload: Record<string, any>) => {
+    if (!channelRef.current) {
+      console.warn('Channel not ready for broadcasting')
       return
     }
-    isInitializedRef.current = true
+    await channelRef.current.send({
+      type: 'broadcast',
+      event,
+      payload
+    })
+  }
 
-    console.log('Initializing channel for game:', gameId, 'username:', username)
-    
+  const trackPresence = (data: { words: number; isEliminated: boolean }) => {
+    if (!channelRef.current) {
+      console.warn('Channel not ready for tracking')
+      return
+    }
+    channelRef.current.track({ id: username, ...data })
+  }
+
+  useEffect(() => {
     const channel = supabase.channel(gameId, {
-      config: { presence: { key: username } }
+      config: { presence: { key: username }, broadcast: { self: true } }
     })
 
-    roomChannelRef.current = channel
+    channelRef.current = channel
 
     channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState()
-        const flat = Object.values(state).flat()
-        console.log('Presence sync:', flat)
-        setPresence(flat)
-      })
-      .on('presence', { event: 'join' }, ({ newPresences }) => {
-        console.log('[join]', newPresences)
-      })
+      .on('presence', { event: 'sync' }, () => handlePresenceSync(channel))
       .on('broadcast', { event: 'game_start' }, ({ payload }) => {
         const { prompts, startTime } = payload
         onGameStart?.(prompts.map((p: any) => p.text), startTime)
@@ -82,97 +93,38 @@ export function useGameChannel({
         onGameReset?.()
       })
       .on('broadcast', { event: 'game_elimination' }, ({ payload }) => {
-        const { newElimination } = payload
-        onElimination?.(newElimination)
+        onElimination?.(payload.newElimination)
       })
       .on('broadcast', { event: 'game_winner' }, ({ payload }) => {
-        const { winnerId } = payload
-        setWinnerId(winnerId)
-        onWinner?.(winnerId)
+        setWinnerId(payload.winnerId)
+        onWinner?.(payload.winnerId)
+      })
+      .on('broadcast', { event: 'tug_point_awarded' }, ({ payload }) => {
+        onTugPointAwarded?.(payload.playerId, payload.newScore)
+      })
+      .on('broadcast', { event: 'tug_winner' }, ({ payload }) => {
+        onTugWinner?.(payload.winnerId)
       })
       .subscribe(async (status) => {
-        console.log('Channel subscription status:', status)
         if (status === 'SUBSCRIBED') {
           try {
-            // Track initial presence when channel is subscribed
             await channel.track({
               id: username,
               words: 0,
               isEliminated: false
             })
-            console.log('Initial presence tracked')
             setIsChannelReady(true)
-          } catch (error) {
-            console.error('Error tracking presence:', error)
+          } catch (err) {
+            console.error('Error tracking presence:', err)
           }
         }
       })
 
     return () => {
-      console.log('Cleaning up channel')
-      isInitializedRef.current = false
       channel.unsubscribe()
+      setIsChannelReady(false)
     }
-  }, [gameId, username]) // Remove dependencies that cause re-renders
-
-  const trackPresence = (data: { words: number; isEliminated: boolean }) => {
-    if (!roomChannelRef.current) {
-      console.warn('Channel not ready for tracking')
-      return
-    }
-    roomChannelRef.current.track({
-      id: username,
-      ...data
-    })
-  }
-
-  const broadcastGameStart = async (prompts: any[], startTime: number) => {
-    if (!roomChannelRef.current) {
-      console.warn('Channel not ready for broadcasting')
-      return
-    }
-    await roomChannelRef.current.send({
-      type: 'broadcast',
-      event: 'game_start',
-      payload: { prompts, startTime }
-    })
-  }
-
-  const broadcastGameReset = async () => {
-    if (!roomChannelRef.current) {
-      console.warn('Channel not ready for broadcasting')
-      return
-    }
-    await roomChannelRef.current.send({
-      type: 'broadcast',
-      event: 'game_reset',
-      payload: {}
-    })
-  }
-
-  const broadcastElimination = async (eliminatedPlayer: string) => {
-    if (!roomChannelRef.current) {
-      console.warn('Channel not ready for broadcasting')
-      return
-    }
-    await roomChannelRef.current.send({
-      type: 'broadcast',
-      event: 'game_elimination',
-      payload: { newElimination: eliminatedPlayer }
-    })
-  }
-
-  const broadcastWinner = async (winnerId: string) => {
-    if (!roomChannelRef.current) {
-      console.warn('Channel not ready for broadcasting')
-      return
-    }
-    await roomChannelRef.current.send({
-      type: 'broadcast',
-      event: 'game_winner',
-      payload: { winnerId }
-    })
-  }
+  }, [gameId, username])
 
   return {
     isChannelReady,
@@ -180,9 +132,17 @@ export function useGameChannel({
     players,
     winnerId,
     trackPresence,
-    broadcastGameStart,
-    broadcastGameReset,
-    broadcastElimination,
-    broadcastWinner
+    broadcastGameStart: (prompts: any[], startTime: number) =>
+      sendBroadcast('game_start', { prompts, startTime }),
+    broadcastGameReset: () =>
+      sendBroadcast('game_reset', {}),
+    broadcastElimination: (eliminatedPlayer: string) =>
+      sendBroadcast('game_elimination', { newElimination: eliminatedPlayer }),
+    broadcastWinner: (winnerId: string) =>
+      sendBroadcast('game_winner', { winnerId }),
+    broadcastTugPointAwarded: (playerId: string, newScore: number) =>
+      sendBroadcast('tug_point_awarded', { playerId, newScore }),
+    broadcastTugWinner: (winnerId: string) =>
+      sendBroadcast('tug_winner', { winnerId })
   }
-} 
+}

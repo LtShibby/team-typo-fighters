@@ -10,6 +10,12 @@ import TypingInput from '@/app/components/TypingInput'
 import PlayerList from '@/app/components/PlayerList'
 import { useGameChannel } from '@/app/hooks/useGameChannel'
 import { useTypingStats } from '@/app/hooks/useTypingStats'
+import { TugOfWar } from '@/app/components/TugOfWar'
+
+interface Prompt {
+  text: string
+  winnerId?: string
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,19 +24,19 @@ const supabase = createClient(
 
 export default function GamePage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams()
-  const gameId = params?.id || 'unknown'
+  const { id: gameId } = params
   const username = searchParams?.get('username') || 'Player'
 
-  const [promptList, setPromptList] = useState<string[]>([])
-  const [currentPromptIndex, setCurrentPromptIndex] = useState(0)
+  const [prompts, setPrompts] = useState<Prompt[]>([])
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [isEliminated, setIsEliminated] = useState(false)
+  const [startTime, setStartTime] = useState<number | null>(null)
+  const [previousPromptLength, setPreviousPromptLength] = useState(0)
+  const [isTugMode, setIsTugMode] = useState(false)
 
   const {
     isChannelReady,
     isHost,
     players,
-    winnerId,
     trackPresence,
     broadcastGameStart,
     broadcastGameReset,
@@ -40,11 +46,12 @@ export default function GamePage({ params }: { params: { id: string } }) {
     gameId,
     username,
     onGameStart: (prompts, startTime) => {
-      setPromptList(prompts)
-      const timeUntilStart = Math.max(startTime - Date.now(), 0)
-      const initialCountdown = Math.ceil(timeUntilStart / 1000)
-      setCountdown(initialCountdown)
-
+      console.log('Game start received:', { prompts, startTime })
+      setPrompts(prompts.map(text => ({ text })))
+      setStartTime(startTime)
+      setCountdown(3)
+      
+      // Start countdown for all players
       const countdownInterval = setInterval(() => {
         setCountdown(prev => {
           if (prev === 1) {
@@ -56,25 +63,22 @@ export default function GamePage({ params }: { params: { id: string } }) {
       }, 1000)
     },
     onGameReset: () => {
-      updateText('')
-      updatePreviousPromptLength(0)
+      setPrompts([])
       setCountdown(null)
-      setCurrentPromptIndex(0)
-      setPromptList([])
-      setIsEliminated(false)
-      resetTypingStats()
-
-      if (isHost) {
-        broadcastGameReset()
-      }
+      setStartTime(null)
+      setPreviousPromptLength(0)
+      setIsTugMode(false)
     },
     onElimination: (eliminatedPlayer) => {
-      if (username === eliminatedPlayer) {
-        setIsEliminated(true)
+      // Check if we should enter Tug of War mode
+      const remainingPlayers = players.filter(p => !p.isEliminated)
+      if (remainingPlayers.length === 2) {
+        setIsTugMode(true)
       }
     },
-    onWinner: (winner) => {
-      // Winner is already set in the hook
+    onWinner: (winnerId) => {
+      setCountdown(null)
+      setStartTime(null)
     }
   })
 
@@ -82,13 +86,12 @@ export default function GamePage({ params }: { params: { id: string } }) {
     text,
     wpm,
     timePassed,
-    startTime,
     reset: resetTypingStats,
     updateText,
     updatePreviousPromptLength
   } = useTypingStats({
     onWpmChange: (newWpm) => {
-      trackPresence({ words: newWpm, isEliminated })
+      trackPresence({ words: newWpm, isEliminated: false })
     }
   })
 
@@ -107,7 +110,32 @@ export default function GamePage({ params }: { params: { id: string } }) {
         }
       }
     }
-  }, [startTime, isHost, timePassed, players])
+  }, [isHost, timePassed, startTime, players, broadcastElimination, broadcastWinner])
+
+  // Add a separate effect to handle game state updates
+  useEffect(() => {
+    if (startTime && timePassed) {
+      const playersRemaining = players.filter(p => !p.isEliminated)
+      if (playersRemaining.length === 2) {
+        setIsTugMode(true)
+      }
+    }
+  }, [players, startTime, timePassed])
+
+  // Add effect to track time passed for all players
+  useEffect(() => {
+    if (startTime && !countdown) {
+      const interval = setInterval(() => {
+        const currentTime = Date.now()
+        const elapsed = (currentTime - startTime) / 1000
+        if (elapsed >= 0) {
+          trackPresence({ words: wpm, isEliminated: false })
+        }
+      }, 1000)
+
+      return () => clearInterval(interval)
+    }
+  }, [startTime, countdown, wpm, trackPresence])
 
   const handleStartGame = async () => {
     const startTime = Date.now() + 3000
@@ -128,29 +156,38 @@ export default function GamePage({ params }: { params: { id: string } }) {
       console.warn('Using fallback prompts due to RPC error:', error)
     }
 
-    setPromptList(finalPrompts.map((p: any) => p.text))
+    // Set initial state for host
+    setPrompts(finalPrompts)
     setCountdown(3)
-    const countdownInterval = setInterval(() => {
-      setCountdown(prev => {
-        if (prev === 1) {
-          clearInterval(countdownInterval)
-          return null
-        }
-        return (prev ?? 1) - 1
-      })
-    }, 1000)
-
+    
+    // Broadcast game start to all players
     await broadcastGameStart(finalPrompts, startTime)
   }
 
-  const targetText = promptList[currentPromptIndex] || ''
+  if (!isChannelReady) {
+    return <div className="text-arcade-text">Loading...</div>
+  }
+
+  if (isTugMode) {
+    return (
+      <TugOfWar
+        gameId={gameId}
+        username={username}
+        prompts={prompts.map(p => p.text)}
+      />
+    )
+  }
+
+  const targetText = prompts[0]?.text || ''
 
   console.log('Render state:', {
     isChannelReady,
     isHost,
-    promptListLength: promptList.length,
+    promptListLength: prompts.length,
     countdown,
-    players
+    players,
+    startTime,
+    timePassed
   })
 
   return (
@@ -164,9 +201,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
               <div className="text-center">
                 <div className="text-4xl font-bold">{countdown}</div>
               </div>
-            ) : promptList.length > 0 ? (
+            ) : prompts.length > 0 ? (
               <div>
-                {!winnerId && (
+                {!prompts[0]?.winnerId && (
                   <>
                     <TypingPrompt prompt={targetText} userInput={text} />
                     <TypingInput
@@ -174,10 +211,10 @@ export default function GamePage({ params }: { params: { id: string } }) {
                       onChange={updateText}
                       onComplete={() => {
                         updatePreviousPromptLength(targetText.length)
-                        setCurrentPromptIndex(prev => prev + 1)
+                        setPrompts(prev => prev.slice(1))
                         updateText('')
                       }}
-                      disabled={isEliminated}
+                      disabled={false}
                     />
                   </>
                 )}
