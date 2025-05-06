@@ -1,5 +1,4 @@
 import {useState, useEffect, useCallback} from 'react'
-import { throttle } from 'lodash'
 
 interface UseTypingStatsProps {
   onWpmChange?: (wpm: number) => void
@@ -12,11 +11,6 @@ export function useTypingStats({ onWpmChange, onTimePassedChange }: UseTypingSta
   const [wpm, setWpm] = useState(0)
   const [timePassed, setTimePassed] = useState<number | null>(null)
   const [previousPromptTextLength, setPreviousPromptTextLength] = useState(0)
-
-  const throttledSetTimePassed = throttle((newTimePassed: number) => {
-    setTimePassed(newTimePassed)
-    onTimePassedChange?.(newTimePassed)
-  }, 1000)
 
   useEffect(() => {
     if (!startTime && text.length === 1) {
@@ -35,7 +29,8 @@ export function useTypingStats({ onWpmChange, onTimePassedChange }: UseTypingSta
 
         if (elapsed > 0) {
           const newTimePassed = (timePassed ?? 0) + (elapsed * 60)
-          throttledSetTimePassed(newTimePassed)
+          setTimePassed(newTimePassed)
+          onTimePassedChange?.(newTimePassed)
         }
       }, 100)
 

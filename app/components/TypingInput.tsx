@@ -2,12 +2,13 @@
 
 type TypingInputProps = {
   value: string
+  prompt: string
   onChange: (text: string) => void
   onComplete?: () => void
   disabled?: boolean
 }
 
-export default function TypingInput({ value, onChange, onComplete, disabled }: TypingInputProps) {
+export default function TypingInput({ value, prompt, onChange, onComplete, disabled }: TypingInputProps) {
   return (
     <input
       type="text"
@@ -15,7 +16,7 @@ export default function TypingInput({ value, onChange, onComplete, disabled }: T
       onChange={(e) => {
         const newValue = e.target.value
         onChange(newValue)
-        if (onComplete && newValue === value) {
+        if (onComplete && newValue === prompt) {
           onComplete()
         }
       }}

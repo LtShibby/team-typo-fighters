@@ -211,6 +211,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
                     <TypingPrompt prompt={targetText} userInput={text} />
                     <TypingInput
                       value={text}
+                      prompt={targetText}
                       onChange={updateText}
                       onComplete={() => {
                         updatePreviousPromptLength(targetText.length)
