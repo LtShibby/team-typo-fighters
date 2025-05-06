@@ -2,6 +2,9 @@ export interface TugOfWarProps {
   gameId: string
   username: string
   prompts: string[]
+  player1: string
+  player2: string
+  tugStartTime: number
 }
 
 export interface TugPlayer {
@@ -21,10 +24,10 @@ export interface TugGameState {
   cooldownEndTime: number | null
 }
 
-export type TugGameEvent = 
+export type TugGameEvent =
   | { type: 'TUG_MODE_START'; payload: { prompts: string[] } }
   | { type: 'TUG_POINT_AWARDED'; payload: { playerId: string; newScore: number } }
   | { type: 'TUG_WINNER'; payload: { winnerId: string } }
   | { type: 'TUG_ROUND_END'; payload: { winnerId: string | null } }
   | { type: 'TUG_COOLDOWN_START'; payload: { endTime: number } }
-  | { type: 'TUG_COOLDOWN_END' } 
+  | { type: 'TUG_COOLDOWN_END' }

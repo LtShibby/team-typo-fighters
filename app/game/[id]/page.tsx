@@ -32,6 +32,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const [countdown, setCountdown] = useState<number | null>(null)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [isTugMode, setIsTugMode] = useState(false)
+  const [tugPlayer1, setTugPlayer1] = useState('')
+  const [tugPlayer2, setTugPlayer2] = useState('')
+  const [tugStartTime, setTugStartTime] = useState<number | null>(null)
   const [finalWpm, setFinalWpm] = useState<number | null>(null)
 
   const {
@@ -44,6 +47,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
     broadcastGameStart,
     broadcastGameReset,
     broadcastElimination,
+    broadcastTugModeStart,
     broadcastWinner
   } = useGameChannel({
     gameId,
@@ -67,6 +71,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
       }, 1000)
     },
     onGameReset: () => {
+      setTugStartTime(null)
+      setTugPlayer1('')
+      setTugPlayer2('')
       setPrompts([])
       setCountdown(null)
       setGameStarted(false)
@@ -80,15 +87,16 @@ export default function GamePage({ params }: { params: { id: string } }) {
         setIsEliminated(true)
         trackPresence({ words: wpm, isEliminated: true, finalWpm: finalWpm })
       }
-      // Check if we should enter Tug of War mode
-      const remainingPlayers = players.filter(p => !p.isEliminated)
-      if (remainingPlayers.length === 2) {
-        setIsTugMode(true)
-      }
     }, []),
     onWinner: (winnerId) => {
       setCountdown(null)
       setStartTime(null)
+    },
+    onTugModeStart: (player1, player2, startTime) =>{
+      setIsTugMode(true)
+      setTugPlayer1(player1)
+      setTugPlayer2(player2)
+      setTugStartTime(tugStartTime)
     }
   })
 
@@ -128,23 +136,19 @@ export default function GamePage({ params }: { params: { id: string } }) {
         if (playerToElim.id === username) {
           setFinalStats()
         }
-        if (playersRemaining.length === 2) {
-          broadcastWinner(playersRemaining[1].id)
+        const remainingPlayers = players.filter(p => p.id !== playerToElim.id)
+        if (remainingPlayers.length === 2) {
+          const tugStartTime = Date.now() + 5000;
+          broadcastTugModeStart(remainingPlayers[0].id, remainingPlayers[1].id, tugStartTime)
+          setIsTugMode(true)
+          setTugPlayer1(remainingPlayers[0].id)
+          setTugPlayer2(remainingPlayers[1].id)
+          setTugStartTime(tugStartTime)
         }
       }
     }
     resetTimePassed()
   }, [isHost, wpm, username, timePassed, startTime, players, broadcastElimination, broadcastWinner, resetTimePassed])
-
-  // Add a separate effect to handle game state updates
-  useEffect(() => {
-    if (startTime && timePassed) {
-      const playersRemaining = players.filter(p => !p.isEliminated)
-      if (playersRemaining.length === 2) {
-        setIsTugMode(true)
-      }
-    }
-  }, [players, startTime, timePassed])
 
   // Add effect to track time passed for all players
   useEffect(() => {
@@ -206,6 +210,13 @@ export default function GamePage({ params }: { params: { id: string } }) {
         gameId={gameId}
         username={username}
         prompts={prompts.map(p => p.text)}
+        player1={tugPlayer1}
+        player2={tugPlayer2}
+        startTime={tugStartTime}
+        onGameReset={() => {
+          broadcastGameReset()
+          resetTypingStats()
+        }}
       />
     )
   }

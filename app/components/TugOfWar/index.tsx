@@ -65,7 +65,7 @@ function tugGameReducer(state: TugGameState, event: TugGameEvent): TugGameState 
   }
 }
 
-export function TugOfWar({ gameId, username, prompts }: TugOfWarProps) {
+export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfWarProps) {
   const [state, dispatch] = useReducer(tugGameReducer, {
     ...initialState,
     currentPrompt: prompts[0] || '',
@@ -87,14 +87,16 @@ export function TugOfWar({ gameId, username, prompts }: TugOfWarProps) {
     }
   })
 
-  const { 
-    text: currentInput, 
-    updateText: handleInputChange, 
-    reset: resetInput 
+  const tugPlayers = players.filter(p => p.id === player1 || p.id === player2);
+
+  const {
+    text: currentInput,
+    updateText: handleInputChange,
+    reset: resetInput
   } = useTypingStats({
     onComplete: () => {
       if (state.isCooldown || state.gameWinner || isProcessingRef.current) return
-      
+
       isProcessingRef.current = true
       const currentScore = state.scores[username] || 0
       const newScore = currentScore + 1
@@ -108,7 +110,7 @@ export function TugOfWar({ gameId, username, prompts }: TugOfWarProps) {
       broadcastTimeoutRef.current = setTimeout(() => {
         // Broadcast point awarded
         broadcastElimination(username) // Reusing elimination event for point awarding
-        
+
         dispatch({ type: 'TUG_POINT_AWARDED', payload: { playerId: username, newScore } })
 
         // Check for winner
@@ -162,8 +164,8 @@ export function TugOfWar({ gameId, username, prompts }: TugOfWarProps) {
           {state.gameWinner === username ? 'You Win!' : 'Game Over!'}
         </h2>
         <p className="text-arcade-text text-xl">
-          {state.gameWinner === username 
-            ? 'Congratulations!' 
+          {state.gameWinner === username
+            ? 'Congratulations!'
             : `${state.gameWinner} wins!`}
         </p>
       </div>
@@ -172,12 +174,12 @@ export function TugOfWar({ gameId, username, prompts }: TugOfWarProps) {
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <TugScoreboard 
-        players={players}
+      <TugScoreboard
+        players={tugPlayers}
         scores={state.scores}
         roundWinner={state.roundWinner}
       />
-      
+
       <TugPrompt
         prompt={state.currentPrompt}
         currentInput={currentInput}
@@ -187,4 +189,4 @@ export function TugOfWar({ gameId, username, prompts }: TugOfWarProps) {
       />
     </div>
   )
-} 
+}

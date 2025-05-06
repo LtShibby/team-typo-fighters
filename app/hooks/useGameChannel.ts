@@ -19,6 +19,7 @@ interface UseGameChannelProps {
   onGameStart?: (prompts: string[], startTime: number) => void
   onGameReset?: () => void
   onElimination?: (eliminatedPlayer: string) => void
+  onTugModeStart?: (player1:string, player2:string, startTime: number) => void
   onWinner?: (winnerId: string) => void
   onTugPointAwarded?: (playerId: string, newScore: number) => void
   onTugWinner?: (winnerId: string) => void
@@ -30,6 +31,7 @@ export function useGameChannel({
   onGameStart,
   onGameReset,
   onElimination,
+  onTugModeStart,
   onWinner,
   onTugPointAwarded,
   onTugWinner
@@ -109,6 +111,9 @@ export function useGameChannel({
         setWinnerId(payload.winnerId)
         onWinner?.(payload.winnerId)
       })
+      .on('broadcast', { event: 'tug_mode_start' }, ({ payload }) => {
+        onTugModeStart?.(payload.player1, payload.player2, payload.startTime)
+      })
       .on('broadcast', { event: 'tug_point_awarded' }, ({ payload }) => {
         onTugPointAwarded?.(payload.playerId, payload.newScore)
       })
@@ -150,6 +155,8 @@ export function useGameChannel({
       sendBroadcast('game_reset', {}),
     broadcastElimination: (eliminatedPlayer: string) =>
       sendBroadcast('game_elimination', { newElimination: eliminatedPlayer }),
+    broadcastTugModeStart: (player1: string, player2: string, startTime: number) =>
+      sendBroadcast('tug_mode_start', { player1, player2, startTime }),
     broadcastWinner: (winnerId: string) =>
       sendBroadcast('game_winner', { winnerId }),
     broadcastTugPointAwarded: (playerId: string, newScore: number) =>
