@@ -50,7 +50,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
       setPrompts(prompts.map(text => ({ text })))
       setStartTime(startTime)
       setCountdown(3)
-      
+
       // Start countdown for all players
       const countdownInterval = setInterval(() => {
         setCountdown(prev => {
@@ -159,7 +159,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
     // Set initial state for host
     setPrompts(finalPrompts)
     setCountdown(3)
-    
+
     // Broadcast game start to all players
     await broadcastGameStart(finalPrompts, startTime)
   }
@@ -180,15 +180,15 @@ export default function GamePage({ params }: { params: { id: string } }) {
 
   const targetText = prompts[0]?.text || ''
 
-  console.log('Render state:', {
-    isChannelReady,
-    isHost,
-    promptListLength: prompts.length,
-    countdown,
-    players,
-    startTime,
-    timePassed
-  })
+  // console.log('Render state:', {
+  //   isChannelReady,
+  //   isHost,
+  //   promptListLength: prompts.length,
+  //   countdown,
+  //   players,
+  //   startTime,
+  //   timePassed
+  // })
 
   return (
     <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
@@ -218,7 +218,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
                     />
                   </>
                 )}
-                <PlayerList players={players} currentUser={username} currentWPM={wpm} />
+                <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true} />
               </div>
             ) : (
               <div className="text-center">
@@ -229,6 +229,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
                 >
                   {isHost ? 'Start Game' : 'Waiting for host...'}
                 </button>
+                <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={false}/>
               </div>
             )}
           </>
