@@ -32,12 +32,15 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const [countdown, setCountdown] = useState<number | null>(null)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [isTugMode, setIsTugMode] = useState(false)
+  const [finalWpm, setFinalWpm] = useState<number | null>(null)
 
   const {
     isChannelReady,
     isHost,
     players,
     trackPresence,
+    isEliminated,
+    setIsEliminated,
     broadcastGameStart,
     broadcastGameReset,
     broadcastElimination,
@@ -69,14 +72,20 @@ export default function GamePage({ params }: { params: { id: string } }) {
       setGameStarted(false)
       setStartTime(null)
       setIsTugMode(false)
+      setFinalWpm(null)
+      setIsEliminated(false)
     },
-    onElimination: (eliminatedPlayer) => {
+    onElimination: useCallback((eliminatedPlayer: string) => {
+      if (eliminatedPlayer === username) {
+        setIsEliminated(true)
+        trackPresence({ words: wpm, isEliminated: true, finalWpm: finalWpm })
+      }
       // Check if we should enter Tug of War mode
       const remainingPlayers = players.filter(p => !p.isEliminated)
       if (remainingPlayers.length === 2) {
         setIsTugMode(true)
       }
-    },
+    }, []),
     onWinner: (winnerId) => {
       setCountdown(null)
       setStartTime(null)
@@ -94,9 +103,18 @@ export default function GamePage({ params }: { params: { id: string } }) {
     setGameStarted
   } = useTypingStats({
     onWpmChange: useCallback((newWpm: number) => {
-      trackPresence({ words: newWpm, isEliminated: false })
-    }, [trackPresence])
+      if (isEliminated && finalWpm === null) {
+        setFinalStats()
+      }
+      trackPresence({ words: newWpm, isEliminated: isEliminated, finalWpm: finalWpm })
+    }, [trackPresence]),
+    isEliminated: isEliminated
   })
+
+  const setFinalStats = useCallback(() => {
+    setIsEliminated(true)
+    setFinalWpm(wpm)
+  }, [setIsEliminated, setFinalWpm, wpm])
 
   const onPlayerElimination = useCallback(() => {
     if (isHost) {
@@ -107,14 +125,16 @@ export default function GamePage({ params }: { params: { id: string } }) {
       if (playersRemaining.length > 0) {
         const playerToElim = playersRemaining[0]
         broadcastElimination(playerToElim.id)
-
+        if (playerToElim.id === username) {
+          setFinalStats()
+        }
         if (playersRemaining.length === 2) {
           broadcastWinner(playersRemaining[1].id)
         }
       }
     }
     resetTimePassed()
-  }, [isHost, timePassed, startTime, players, broadcastElimination, broadcastWinner, resetTimePassed])
+  }, [isHost, wpm, username, timePassed, startTime, players, broadcastElimination, broadcastWinner, resetTimePassed])
 
   // Add a separate effect to handle game state updates
   useEffect(() => {
@@ -133,7 +153,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         const currentTime = Date.now()
         const elapsed = (currentTime - startTime) / 1000
         if (elapsed >= 0) {
-          trackPresence({ words: wpm, isEliminated: false })
+          trackPresence({ words: wpm, isEliminated: isEliminated, finalWpm: finalWpm })
         }
       }, 1000)
 
@@ -225,7 +245,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
                       </>
                   )}
                   <EliminationTimer
-                      duration={20}
+                      duration={10}
                       timePassed={timePassed}
                       onComplete={onPlayerElimination}/>
                   <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true}/>

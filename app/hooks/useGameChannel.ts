@@ -10,6 +10,7 @@ export interface Player {
   id: string
   wpm: number
   isEliminated: boolean
+  finalWpm: number | null
 }
 
 interface UseGameChannelProps {
@@ -35,6 +36,7 @@ export function useGameChannel({
 }: UseGameChannelProps) {
   const [presence, setPresence] = useState<any[]>([])
   const [isChannelReady, setIsChannelReady] = useState(false)
+  const [isEliminated, setIsEliminated] = useState(false)
   const [winnerId, setWinnerId] = useState<string | null>(null)
   const channelRef = useRef<any>(null)
 
@@ -46,13 +48,15 @@ export function useGameChannel({
     return presence.map((u: any) => ({
       id: u.id,
       wpm: u.words,
-      isEliminated: u.isEliminated
+      isEliminated: u.isEliminated,
+      finalWpm: u.finalWpm
     }))
   }, [presence])
 
   const handlePresenceSync = (channel: any) => {
     const state = channel.presenceState()
     const flat = Object.values(state).flat()
+    console.log('received presence:', flat);
     setPresence(flat)
   }
 
@@ -70,7 +74,7 @@ export function useGameChannel({
 
   const [timeSinceLastTracked, setTimeSinceLastTracked] = useState(0)
 
-  const trackPresence = (data: { words: number; isEliminated: boolean }) => {
+  const trackPresence = (data: { words: number; isEliminated: boolean; finalWpm: number | null }) => {
     if (!channelRef.current) {
       console.warn('Channel not ready for tracking')
       return
@@ -138,6 +142,8 @@ export function useGameChannel({
     players,
     winnerId,
     trackPresence,
+    isEliminated,
+    setIsEliminated,
     broadcastGameStart: (prompts: any[], startTime: number) =>
       sendBroadcast('game_start', { prompts, startTime }),
     broadcastGameReset: () =>

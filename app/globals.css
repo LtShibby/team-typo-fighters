@@ -50,4 +50,14 @@
         left: 50%;
         transform: translate(-50%, -50%);
     }
+
+    .playerListTitle {
+        @apply text-lg space-y-1 font-arcade text-left;
+        margin-top: 10px;
+    }
+
+    .eliminatedListTitle {
+        @apply text-lg space-y-1 font-arcade text-left;
+        margin-top: 10px;
+    }
 }
