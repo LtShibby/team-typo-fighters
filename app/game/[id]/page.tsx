@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import {useState, useEffect, useCallback} from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 import GameHeaderBanner from '@/app/components/GameHeaderBanner'
@@ -91,10 +91,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
     updatePreviousPromptLength,
     resetTimePassed
   } = useTypingStats({
-    onWpmChange: (newWpm) => {
-
+    onWpmChange: useCallback((newWpm: number) => {
       trackPresence({ words: newWpm, isEliminated: false })
-    }
+    }, [trackPresence])
   })
 
   useEffect(() => {
