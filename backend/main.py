@@ -18,8 +18,8 @@ import random
 
 app = FastAPI()
 
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsYWlmcnZndWh6bHRkYm90bmZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjQ1MzIwMiwiZXhwIjoyMDYyMDI5MjAyfQ.t2RK812S7cuvhl5lHXT3mUSotiYaNnTa5xYft574nuE"
+SUPABASE_URL = "https://wlaifrvguhzltdbotnfd.supabase.co"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -57,7 +57,7 @@ async def get_game_prompts(num_prompts: int):
     print('num_difficulty_prompts: ', num_difficulty_prompts)
     response = supabase.table("prompts").select("*").execute()
     prompts_dictionary = {'easy': [], 'medium': [], 'hard': [], 'insane': []}
-    result = {}
+    result = []
 
     prompts = response.data
     for prompt in prompts:
@@ -73,7 +73,9 @@ async def get_game_prompts(num_prompts: int):
 
     for key in prompts_dictionary:
         random_values = random.sample(prompts_dictionary[key], num_difficulty_prompts)
-        result[key] = random_values
+        # result[key] = random_values
+        for r in random_values:
+            result.append({'text': r})
 
     print('result: ', result)
     if not response.data:
