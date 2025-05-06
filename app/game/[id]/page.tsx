@@ -212,7 +212,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         prompts={prompts.map(p => p.text)}
         player1={tugPlayer1}
         player2={tugPlayer2}
-        startTime={tugStartTime}
+        tugStartTime={tugStartTime!}
         onGameReset={() => {
           broadcastGameReset()
           resetTypingStats()
