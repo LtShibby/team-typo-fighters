@@ -1,10 +1,18 @@
+import { createClient } from '@supabase/supabase-js'
 import { useEffect } from 'react'
-import { pingSupabase } from './pingSupabase'
 
-export default function DebugSupabase() {
+export function debugSupabase() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_API_KEY!
+  )
+
   useEffect(() => {
-    pingSupabase()
+    console.log('Supabase client initialized:', {
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_API_KEY
+    })
   }, [])
 
-  return <div className="text-arcade-text">Check the console 👀</div>
+  return null
 }
