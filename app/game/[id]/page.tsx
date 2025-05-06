@@ -163,32 +163,36 @@ export default function GamePage({ params }: { params: { id: string } }) {
 
   const handleStartGame = async () => {
     const startTime = Date.now() + 3000
-
-    const { data: prompts, error } = await supabase.rpc('get_game_prompts')
-    const response = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/get_game_prompts')
-    const json = response.json();
-    console.log('Prompts from Supabase:', response)
-    console.log('json: ', json.data)
-
-    const fallbackPrompts = [
-      { text: 'Life before death. Strength before weakness. Journey before destination.' },
-      { text: 'Honor is not dead so long as he lives in the hearts of men.' },
-      { text: 'Some men may be stronger than others. That does not give them the right to dominate those who are weaker.' },
-      { text: 'You mustnt kneel to me. The Knights Radiant must stand again.' },
-      { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
-    ]
-
-    const finalPrompts = (!error && prompts?.length > 0) ? prompts : fallbackPrompts
-
-    if (error) {
-      console.warn('Using fallback prompts due to RPC error:', error)
+  
+    let finalPrompts: { text: string }[] = []
+  
+    try {
+      const response = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/get_game_prompts') // add `/8` for 8 prompts or whatever number you want
+      const json = await response.json()
+      console.log('json: ', json)
+      
+      if (json?.data && Array.isArray(json.data)) {
+        finalPrompts = json.data.filter(p => typeof p.text === 'string')
+        console.log('finalPrompts: ', finalPrompts)
+      } else {
+        throw new Error('Invalid prompt format from API')
+      }
+  
+      console.log('Fetched prompts from Railway:', finalPrompts)
+    } catch (err) {
+      console.warn('Failed to fetch from Railway, using fallback prompts:', err)
+      finalPrompts = [
+        { text: 'Life before death. Strength before weakness. Journey before destination.' },
+        { text: 'Honor is not dead so long as he lives in the hearts of men.' },
+        { text: 'Some men may be stronger than others. That does not give them the right to dominate those who are weaker.' },
+        { text: 'You mustnt kneel to me. The Knights Radiant must stand again.' },
+        { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
+      ]
     }
-
-    // Set initial state for host
+  
     setPrompts(finalPrompts)
     setCountdown(3)
-
-    // Broadcast game start to all players
+  
     await broadcastGameStart(finalPrompts, startTime)
   }
 
