@@ -18,12 +18,13 @@ export function useTypingStats({
   const [wpm, setWpm] = useState(0)
   const [timePassed, setTimePassed] = useState<number | null>(null)
   const [previousPromptTextLength, setPreviousPromptTextLength] = useState(0)
+  const [gameStarted, setGameStarted] = useState(false);
 
   useEffect(() => {
-    if (!startTime && text.length === 1) {
+    if (!startTime && gameStarted) {
       setStartTime(Date.now())
     }
-  }, [text, startTime])
+  }, [text, startTime, gameStarted])
 
   useEffect(() => {
     if (startTime) {
@@ -35,11 +36,11 @@ export function useTypingStats({
         onWpmChange?.(newWpm)
 
         if (elapsed > 0) {
-          const newTimePassed = (timePassed ?? 0) + (elapsed * 60)
-          setTimePassed(newTimePassed)
+          const newTimePassed = (timePassed ?? 0) + (0.5)
           onTimePassedChange?.(newTimePassed)
+          setTimePassed(newTimePassed)
         }
-      }, 100)
+      }, 500)
 
       return () => clearInterval(interval)
     }
@@ -80,6 +81,7 @@ export function useTypingStats({
     reset,
     updateText,
     updatePreviousPromptLength,
-    resetTimePassed
+    resetTimePassed,
+    setGameStarted
   }
 }

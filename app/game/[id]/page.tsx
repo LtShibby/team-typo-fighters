@@ -11,6 +11,7 @@ import PlayerList from '@/app/components/PlayerList'
 import { useGameChannel } from '@/app/hooks/useGameChannel'
 import { useTypingStats } from '@/app/hooks/useTypingStats'
 import { TugOfWar } from '@/app/components/TugOfWar'
+import {EliminationTimer} from "@/app/components/EliminationTimer";
 
 interface Prompt {
   text: string
@@ -30,7 +31,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [countdown, setCountdown] = useState<number | null>(null)
   const [startTime, setStartTime] = useState<number | null>(null)
-  const [previousPromptLength, setPreviousPromptLength] = useState(0)
   const [isTugMode, setIsTugMode] = useState(false)
 
   const {
@@ -56,6 +56,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         setCountdown(prev => {
           if (prev === 1) {
             clearInterval(countdownInterval)
+            setGameStarted(true)
             return null
           }
           return (prev ?? 1) - 1
@@ -65,8 +66,8 @@ export default function GamePage({ params }: { params: { id: string } }) {
     onGameReset: () => {
       setPrompts([])
       setCountdown(null)
+      setGameStarted(false)
       setStartTime(null)
-      setPreviousPromptLength(0)
       setIsTugMode(false)
     },
     onElimination: (eliminatedPlayer) => {
@@ -89,15 +90,16 @@ export default function GamePage({ params }: { params: { id: string } }) {
     reset: resetTypingStats,
     updateText,
     updatePreviousPromptLength,
-    resetTimePassed
+    resetTimePassed,
+    setGameStarted
   } = useTypingStats({
     onWpmChange: useCallback((newWpm: number) => {
       trackPresence({ words: newWpm, isEliminated: false })
     }, [trackPresence])
   })
 
-  useEffect(() => {
-    if (isHost && timePassed && startTime && timePassed > 10000) {
+  const onPlayerElimination = useCallback(() => {
+    if (isHost) {
       const playersRemaining = players
         .filter(p => !p.isEliminated)
         .sort((a, b) => a.wpm - b.wpm)
@@ -109,10 +111,10 @@ export default function GamePage({ params }: { params: { id: string } }) {
         if (playersRemaining.length === 2) {
           broadcastWinner(playersRemaining[1].id)
         }
-        resetTimePassed()
       }
     }
-  }, [isHost, timePassed, startTime, players, broadcastElimination, broadcastWinner])
+    resetTimePassed()
+  }, [isHost, timePassed, startTime, players, broadcastElimination, broadcastWinner, resetTimePassed])
 
   // Add a separate effect to handle game state updates
   useEffect(() => {
@@ -195,46 +197,50 @@ export default function GamePage({ params }: { params: { id: string } }) {
   return (
     <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
       <div className="max-w-3xl mx-auto space-y-10">
-        <GameHeaderBanner roomId={gameId} username={username} />
+        <GameHeaderBanner roomId={gameId} username={username}/>
 
         {isChannelReady && (
           <>
             {countdown !== null ? (
-              <div className="text-center">
-                <div className="text-4xl font-bold">{countdown}</div>
-                <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true}/>
-              </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold">{countdown}</div>
+                  <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true}/>
+                </div>
             ) : prompts.length > 0 ? (
-              <div>
-                {!prompts[0]?.winnerId && (
-                  <>
-                    <TypingPrompt prompt={targetText} userInput={text} />
-                    <TypingInput
-                      value={text}
-                      prompt={targetText}
-                      onChange={updateText}
-                      onComplete={() => {
-                        updatePreviousPromptLength(targetText.length)
-                        setPrompts(prev => prev.slice(1))
-                        updateText('')
-                      }}
-                      disabled={false}
-                    />
-                  </>
-                )}
-                <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true} />
-              </div>
+                <div>
+                  {!prompts[0]?.winnerId && (
+                      <>
+                        <TypingPrompt prompt={targetText} userInput={text}/>
+                        <TypingInput
+                            value={text}
+                            prompt={targetText}
+                            onChange={updateText}
+                            onComplete={() => {
+                              updatePreviousPromptLength(targetText.length)
+                              setPrompts(prev => prev.slice(1))
+                              updateText('')
+                            }}
+                            disabled={false}
+                        />
+                      </>
+                  )}
+                  <EliminationTimer
+                      duration={20}
+                      timePassed={timePassed}
+                      onComplete={onPlayerElimination}/>
+                  <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true}/>
+                </div>
             ) : (
-              <div className="text-center">
-                <button
-                  onClick={handleStartGame}
-                  disabled={!isHost}
-                  className="px-4 py-2 bg-arcade-primary text-white rounded disabled:opacity-50"
-                >
-                  {isHost ? 'Start Game' : 'Waiting for host...'}
-                </button>
-                <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={false}/>
-              </div>
+                <div className="text-center">
+                  <button
+                      onClick={handleStartGame}
+                      disabled={!isHost}
+                      className="px-4 py-2 bg-arcade-primary text-white rounded disabled:opacity-50"
+                  >
+                    {isHost ? 'Start Game' : 'Waiting for host...'}
+                  </button>
+                  <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={false}/>
+                </div>
             )}
           </>
         )}
