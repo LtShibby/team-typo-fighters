@@ -5,45 +5,54 @@ interface UseTypingStatsProps {
   onTimePassedChange?: (timePassed: number) => void
   onComplete?: () => void
   currentPrompt?: string
+  isEliminated?: boolean
 }
 
-export function useTypingStats({ 
-  onWpmChange, 
+export function useTypingStats({
+  onWpmChange,
   onTimePassedChange,
   onComplete,
-  currentPrompt 
+  currentPrompt,
+  isEliminated
 }: UseTypingStatsProps = {}) {
   const [text, setText] = useState('')
   const [startTime, setStartTime] = useState<number | null>(null)
   const [wpm, setWpm] = useState(0)
   const [timePassed, setTimePassed] = useState<number | null>(null)
   const [previousPromptTextLength, setPreviousPromptTextLength] = useState(0)
+  const [gameStarted, setGameStarted] = useState(false);
 
   useEffect(() => {
-    if (!startTime && text.length === 1) {
+    if (!startTime && gameStarted) {
       setStartTime(Date.now())
     }
-  }, [text, startTime])
+  }, [text, startTime, gameStarted])
 
   useEffect(() => {
     if (startTime) {
-      const interval = setInterval(() => {
         const elapsed = (Date.now() - startTime) / 1000 / 60
         const words = (text.length + previousPromptTextLength) / 5
         const newWpm = Math.round(words / elapsed)
         setWpm(newWpm)
         onWpmChange?.(newWpm)
+    }
+  }, [text, timePassed, startTime, previousPromptTextLength, onWpmChange])
+
+  useEffect(() => {
+    if (startTime) {
+      const interval = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000 / 60
 
         if (elapsed > 0) {
-          const newTimePassed = (timePassed ?? 0) + (elapsed * 60)
-          setTimePassed(newTimePassed)
+          const newTimePassed = (timePassed ?? 0) + (0.5)
           onTimePassedChange?.(newTimePassed)
+          setTimePassed(newTimePassed)
         }
-      }, 100)
+      }, 500)
 
       return () => clearInterval(interval)
     }
-  }, [text, startTime, previousPromptTextLength, onWpmChange, onTimePassedChange])
+  }, [startTime, timePassed, onTimePassedChange])
 
   // Check for prompt completion
   useEffect(() => {
@@ -80,6 +89,7 @@ export function useTypingStats({
     reset,
     updateText,
     updatePreviousPromptLength,
-    resetTimePassed
+    resetTimePassed,
+    setGameStarted
   }
 }

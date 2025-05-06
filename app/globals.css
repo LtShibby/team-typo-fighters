@@ -12,11 +12,11 @@
 
 @layer components {
   .arcade-button {
-    @apply px-6 py-3 bg-arcade-primary text-arcade-text font-arcade 
+    @apply px-6 py-3 bg-arcade-primary text-arcade-text font-arcade
            rounded-lg shadow-lg hover:bg-opacity-90 transition-all
            transform hover:scale-105 active:scale-95;
   }
-  
+
   .arcade-input {
     @apply px-4 py-2 bg-arcade-background border-2 border-arcade-secondary
            text-arcade-text font-arcade rounded-lg focus:outline-none
@@ -28,4 +28,36 @@
            hover:bg-opacity-90 transform transition-all duration-200;
     text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
   }
-} 
+
+    /* Timer Bar Container Styles */
+    .timer-bar-container {
+        @apply relative w-full h-8 bg-arcade-background border border-arcade-secondary rounded-md overflow-hidden;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
+    /* Timer Bar (progress indicator) */
+    .timer-bar {
+        @apply h-full bg-arcade-secondary;
+        width: 0%; /* Initial width */
+        transition: width linear; /* Smooth progress bar animation */
+    }
+
+    /* Timer Label */
+    .timer-label {
+        @apply absolute text-center font-bold text-white select-none; /* Absolute center */
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .playerListTitle {
+        @apply text-lg space-y-1 font-arcade text-left;
+        margin-top: 10px;
+    }
+
+    .eliminatedListTitle {
+        @apply text-lg space-y-1 font-arcade text-left;
+        margin-top: 10px;
+    }
+}
