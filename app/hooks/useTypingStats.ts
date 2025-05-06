@@ -1,0 +1,60 @@
+import { useState, useEffect } from 'react'
+
+interface UseTypingStatsProps {
+  onWpmChange?: (wpm: number) => void
+  onTimePassedChange?: (timePassed: number) => void
+}
+
+export function useTypingStats({ onWpmChange, onTimePassedChange }: UseTypingStatsProps = {}) {
+  const [text, setText] = useState('')
+  const [startTime, setStartTime] = useState<number | null>(null)
+  const [wpm, setWpm] = useState(0)
+  const [timePassed, setTimePassed] = useState<number | null>(null)
+  const [previousPromptTextLength, setPreviousPromptTextLength] = useState(0)
+
+  useEffect(() => {
+    if (!startTime && text.length === 1) {
+      setStartTime(Date.now())
+    }
+  }, [text, startTime])
+
+  useEffect(() => {
+    if (startTime) {
+      const elapsed = (Date.now() - startTime) / 1000 / 60
+      const words = (text.length + previousPromptTextLength) / 5
+      const newWpm = Math.round(words / elapsed)
+      setWpm(newWpm)
+      onWpmChange?.(newWpm)
+
+      const newTimePassed = (timePassed ?? 0) + (elapsed * 60)
+      setTimePassed(newTimePassed)
+      onTimePassedChange?.(newTimePassed)
+    }
+  }, [text, startTime, previousPromptTextLength, onWpmChange, onTimePassedChange])
+
+  const reset = () => {
+    setText('')
+    setPreviousPromptTextLength(0)
+    setStartTime(null)
+    setWpm(0)
+    setTimePassed(null)
+  }
+
+  const updateText = (newText: string) => {
+    setText(newText)
+  }
+
+  const updatePreviousPromptLength = (length: number) => {
+    setPreviousPromptTextLength(length)
+  }
+
+  return {
+    text,
+    wpm,
+    timePassed,
+    startTime,
+    reset,
+    updateText,
+    updatePreviousPromptLength
+  }
+} 

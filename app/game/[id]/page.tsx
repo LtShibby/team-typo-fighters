@@ -1,13 +1,15 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
-import GameHeader from '@/app/components/GameHeader'
+import GameHeaderBanner from '@/app/components/GameHeaderBanner'
 import TypingPrompt from '@/app/components/TypingPrompt'
 import TypingInput from '@/app/components/TypingInput'
 import PlayerList from '@/app/components/PlayerList'
+import { useGameChannel } from '@/app/hooks/useGameChannel'
+import { useTypingStats } from '@/app/hooks/useTypingStats'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,137 +21,93 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const gameId = params?.id || 'unknown'
   const username = searchParams?.get('username') || 'Player'
 
-  const [text, setText] = useState('')
   const [promptList, setPromptList] = useState<string[]>([])
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0)
-  const [startTime, setStartTime] = useState<number | null>(null)
-  const [wpm, setWpm] = useState(0)
-  const [presence, setPresence] = useState<any[]>([])
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [isChannelReady, setIsChannelReady] = useState(false)
-  const [previousPromptTextLength, setPreviousPromptTextLength] = useState(0)
-  const [timePassed, setTimePassed] = useState<number | null>(null)
   const [isEliminated, setIsEliminated] = useState(false)
-  const [winnerId, setWinnerId] = useState(null)
 
-  const roomChannelRef = useRef<any>(null)
-  const targetText = promptList[currentPromptIndex] || ''
+  const {
+    isChannelReady,
+    isHost,
+    players,
+    winnerId,
+    trackPresence,
+    broadcastGameStart,
+    broadcastGameReset,
+    broadcastElimination,
+    broadcastWinner
+  } = useGameChannel({
+    gameId,
+    username,
+    onGameStart: (prompts, startTime) => {
+      setPromptList(prompts)
+      const timeUntilStart = Math.max(startTime - Date.now(), 0)
+      const initialCountdown = Math.ceil(timeUntilStart / 1000)
+      setCountdown(initialCountdown)
 
-  const isHost = useMemo(() => {
-    return presence.length > 0 && presence[0]?.id === username
-  }, [presence, username])
+      const countdownInterval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev === 1) {
+            clearInterval(countdownInterval)
+            return null
+          }
+          return (prev ?? 1) - 1
+        })
+      }, 1000)
+    },
+    onGameReset: () => {
+      updateText('')
+      updatePreviousPromptLength(0)
+      setCountdown(null)
+      setCurrentPromptIndex(0)
+      setPromptList([])
+      setIsEliminated(false)
+      resetTypingStats()
+
+      if (isHost) {
+        broadcastGameReset()
+      }
+    },
+    onElimination: (eliminatedPlayer) => {
+      if (username === eliminatedPlayer) {
+        setIsEliminated(true)
+      }
+    },
+    onWinner: (winner) => {
+      // Winner is already set in the hook
+    }
+  })
+
+  const {
+    text,
+    wpm,
+    timePassed,
+    startTime,
+    reset: resetTypingStats,
+    updateText,
+    updatePreviousPromptLength
+  } = useTypingStats({
+    onWpmChange: (newWpm) => {
+      trackPresence({ words: newWpm, isEliminated })
+    }
+  })
 
   useEffect(() => {
-    const channel = supabase.channel(gameId, {
-      config: { presence: { key: username } }
-    })
+    if (isHost && timePassed && startTime && timePassed > 5) {
+      const playersRemaining = players
+        .filter(p => !p.isEliminated)
+        .sort((a, b) => a.wpm - b.wpm)
 
-    roomChannelRef.current = channel
+      if (playersRemaining.length > 0) {
+        const playerToElim = playersRemaining[0]
+        broadcastElimination(playerToElim.id)
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState()
-        const flat = Object.values(state).flat()
-        setPresence(flat)
-      })
-      .on('presence', { event: 'join' }, ({ newPresences }) => {
-        console.log('[join]', newPresences)
-      })
-      .on('broadcast', { event: 'game_start' }, ({ payload }) => {
-        const { prompts, startTime } = payload
-        setPromptList(prompts.map((p: any) => p.text))
-
-        const timeUntilStart = Math.max(startTime - Date.now(), 0)
-        const initialCountdown = Math.ceil(timeUntilStart / 1000)
-        setCountdown(initialCountdown)
-
-        const countdownInterval = setInterval(() => {
-          setCountdown(prev => {
-            if (prev === 1) {
-              clearInterval(countdownInterval)
-              return null
-            }
-            return (prev ?? 1) - 1
-          })
-        }, 1000)
-      })
-      .on('broadcast', { event: 'game_reset' }, async ({ payload }) => {
-        await handleReset()
-      })
-      .on('broadcast', { event: 'game_elimination' }, async ({ payload }) => {
-        const { newElimination } = payload;
-        console.log("eliminated", newElimination)
-        if (username === newElimination) {
-          setIsEliminated(true);
+        if (playersRemaining.length === 2) {
+          broadcastWinner(playersRemaining[1].id)
         }
-      })
-      .on('broadcast', { event: 'game_winner' }, async ({ payload }) => {
-        const { winnerId } = payload;
-        console.log("winner", winnerId)
-        setWinnerId(winnerId);
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsChannelReady(true)
-        }
-      })
-
-    return () => {
-      channel.unsubscribe()
+      }
     }
-  }, [gameId, username])
-
-  useEffect(() => {
-    if (!startTime && text.length === 1) {
-      setStartTime(Date.now())
-    }
-  }, [text, startTime])
-
-  useEffect(() => {
-    if (startTime) {
-      const elapsed = (Date.now() - startTime) / 1000 / 60
-      const words = (text.length + previousPromptTextLength) / 5
-      setWpm(Math.round(words / elapsed))
-      setTimePassed(prev => (prev ?? 0) + (elapsed * 60));
-    }
-  }, [text, startTime])
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      roomChannelRef.current?.track({
-        id: username,
-        words: wpm,
-        isEliminated: isEliminated
-      })
-    }, 500)
-
-    return () => clearInterval(interval)
-  }, [wpm, username])
-
-  const handleReset = async () => {
-    setText('')
-    setPreviousPromptTextLength(0)
-    setStartTime(null)
-    setCountdown(null)
-    setWpm(0)
-    setCurrentPromptIndex(0)
-    setPromptList([])
-    setIsEliminated(false)
-    setTimePassed(null)
-    setWinnerId(null)
-
-    if (isHost) {
-      await hostReset()
-    }
-  }
-
-  const hostReset = async () => {
-    await roomChannelRef.current?.send({
-      type: 'broadcast',
-      event: 'game_reset',
-      payload: {}
-    })
-  }
+  }, [startTime, isHost, timePassed, players])
 
   const handleStartGame = async () => {
     const startTime = Date.now() + 3000
@@ -170,7 +128,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
       console.warn('Using fallback prompts due to RPC error:', error)
     }
 
-    // Set prompts locally for the host
     setPromptList(finalPrompts.map((p: any) => p.text))
     setCountdown(3)
     const countdownInterval = setInterval(() => {
@@ -183,140 +140,62 @@ export default function GamePage({ params }: { params: { id: string } }) {
       })
     }, 1000)
 
-    await roomChannelRef.current?.send({
-      type: 'broadcast',
-      event: 'game_start',
-      payload: {
-        prompts: finalPrompts,
-        startTime
-      }
-    })
+    await broadcastGameStart(finalPrompts, startTime)
   }
 
-  const players = useMemo(() => {
-    return presence.map((u: any) => ({
-      id: u.id,
-      wpm: u.words,
-      isEliminated: u.isEliminated
-    }))
-  }, [presence])
+  const targetText = promptList[currentPromptIndex] || ''
 
-  // Host runs elimination logic till we move this to backend?
-  useEffect(() => {
-    if (isHost && timePassed && startTime && timePassed > 5) {
-      const state = roomChannelRef.current?.presenceState()
-      const flat = Object.values(state).flat()
-      setPresence(flat)
-      players.filter(p => !p.isEliminated)
-      const playersRemaining = players
-          .filter(p => !p.isEliminated)
-          .sort((a:any, b:any) => a.words - b.words);
-      const playerToElim = playersRemaining[0];
-      roomChannelRef.current?.send({
-        type: 'broadcast',
-        event: 'game_elimination',
-        payload: {
-          newElimination: playerToElim.id
-        }
-      })
-      if(playerToElim.id === username) {
-        setIsEliminated(true);
-      }
-      // TODO: change to 3 so we can transition to 1 v 1
-      // declare winner
-      if (playersRemaining.length === 2) {
-        roomChannelRef.current?.send({
-          type: 'broadcast',
-          event: 'game_winner',
-          payload: {
-            winnerId: playersRemaining[1].id
-          }
-        })
-        setWinnerId(playersRemaining[1].id);
-      }
-      setTimePassed(0)
-    }
-  }, [startTime, isHost, timePassed])
+  console.log('Render state:', {
+    isChannelReady,
+    isHost,
+    promptListLength: promptList.length,
+    countdown,
+    players
+  })
 
   return (
     <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
       <div className="max-w-3xl mx-auto space-y-10">
-        <GameHeader roomId={gameId} username={username} />
+        <GameHeaderBanner roomId={gameId} username={username} />
 
         {isChannelReady && (
           <>
-            {promptList.length > 0 && countdown === null ? (
+            {countdown !== null ? (
+              <div className="text-center">
+                <div className="text-4xl font-bold">{countdown}</div>
+              </div>
+            ) : promptList.length > 0 ? (
               <div>
                 {!winnerId && (
-                  <div className="text-center font-bold text-green-400 text-xl my-4 animate-pulse">
-                    🟢 Game in Progress
-                  </div>
+                  <>
+                    <TypingPrompt prompt={targetText} userInput={text} />
+                    <TypingInput
+                      value={text}
+                      onChange={updateText}
+                      onComplete={() => {
+                        updatePreviousPromptLength(targetText.length)
+                        setCurrentPromptIndex(prev => prev + 1)
+                        updateText('')
+                      }}
+                      disabled={isEliminated}
+                    />
+                  </>
                 )}
-                {!winnerId && isEliminated && (
-                  <div className="text-center font-bold text-red-600 text-xl my-4 animate-pulse">
-                    🔴 You've been Eliminated
-                  </div>
-                )}
-                {winnerId && (
-                    <div className="text-center font-bold text-yellow-400 text-xl my-4 animate-pulse">
-                      🏆🏆 {winnerId === username ? "You're" : winnerId + " is"} the Winner 🏆🏆
-                    </div>
-                )}
+                <PlayerList players={players} currentUser={username} currentWPM={wpm} />
               </div>
-            ) : isHost ? (
-              <button
-                onClick={handleStartGame}
-                className="arcade-button bg-green-600 hover:bg-green-700"
-              >
-                Start Game
-              </button>
             ) : (
-              <div className="text-center font-bold text-yellow-400 text-xl my-4">
-                WAITING FOR HOST TO START THE GAME
+              <div className="text-center">
+                <button
+                  onClick={handleStartGame}
+                  disabled={!isHost}
+                  className="px-4 py-2 bg-arcade-primary text-white rounded disabled:opacity-50"
+                >
+                  {isHost ? 'Start Game' : 'Waiting for host...'}
+                </button>
               </div>
             )}
           </>
         )}
-
-
-        <div className="bg-arcade-background border border-arcade-secondary rounded-xl p-6 shadow-inner">
-          <TypingPrompt prompt={targetText} userInput={text} />
-          { /* ToDo: remove isHost from disabled once time tracking fixed*/}
-          <TypingInput
-            value={text}
-            onChange={(newVal) => {
-              setText(newVal)
-              if (newVal === targetText) {
-                setPreviousPromptTextLength(prev => prev + promptList[currentPromptIndex].length);
-                setCurrentPromptIndex(prev => prev + 1)
-                setText('')
-              }
-            }}
-            disabled={text === targetText || countdown !== null || (!isHost && isEliminated)}
-          />
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="text-lg font-arcade text-arcade-secondary">
-            WPM: <span className="font-bold text-arcade-accent">{wpm}</span>
-          </div>
-          {isHost && (
-            <button onClick={handleReset} className="arcade-button">
-              Reset
-            </button>
-          )}
-        </div>
-
-        {countdown !== null && (
-          <div className="text-center font-bold text-2xl text-arcade-accent">
-            Game starts in: {countdown}
-          </div>
-        )}
-
-        <div className="border-t border-arcade-secondary pt-4">
-          <h2 className="font-arcade text-arcade-accent text-lg mb-2">Players</h2>
-          <PlayerList players={players} currentUser={username} currentWPM={wpm} />
-        </div>
       </div>
     </main>
   )
