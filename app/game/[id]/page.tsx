@@ -143,6 +143,8 @@ export default function GamePage({ params }: { params: { id: string } }) {
     const startTime = Date.now() + 3000
 
     const { data: prompts, error } = await supabase.rpc('get_game_prompts')
+    const response = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/get_game_prompts')
+    console.log('Prompts from Supabase:', response)
 
     const fallbackPrompts = [
       { text: 'Life before death. Strength before weakness. Journey before destination.' },
