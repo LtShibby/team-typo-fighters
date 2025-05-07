@@ -44,7 +44,7 @@ export default function PlayerList({ players, currentUser, currentWPM, gameStart
     }
 
     return (
-        <div>
+        <div style={{marginTop:100}}>
             <div>
                 <h2 className="text-lg space-y-1 font-arcade text-left">Typo Fighters</h2>
                 <ul className="text-sm space-y-1 font-arcade">

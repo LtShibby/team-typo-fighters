@@ -271,8 +271,8 @@ export default function GamePage({ params }: { params: { id: string } }) {
           {isChannelReady && (
               <>
                 {countdown !== null ? (
-                    <div className="text-center">
-                      <div className="text-4xl font-bold">{countdown}</div>
+                    <div className="text-center text-arcade-text" style={{marginTop: '100px'}}>
+                      <div className="text-4xl font-arcade font-bold">{countdown}</div>
                       <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true}/>
                     </div>
                 ) : prompts.length > 0 ? (
@@ -300,7 +300,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
                       <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={true}/>
                     </div>
                 ) : (
-                    <div className="text-center">
+                    <div className="text-center" style={{marginTop: '100px'}}>
                       <button
                           onClick={handleStartGame}
                           disabled={!isHost}
