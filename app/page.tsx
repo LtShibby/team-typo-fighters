@@ -19,12 +19,7 @@ export default function Home() {
   const router = useRouter()
   const [selectedTab, setSelectedTab] = useState<ScoreKey>('highest_wpm')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [highScoresByKey, setHighScoresByKey] = useState<Record<ScoreKey, ScoreEntry[]>>({
-    highest_wpm: [],
-    games_played: [],
-    tug_entries: [],
-    tug_wins: [],
-  })
+  const [allScores, setAllScores] = useState<ScoreEntry[]>([])
 
   const mockHighScores: ScoreEntry[] = [
     { username: 'keyboard_queen', highest_wpm: 110, games_played: 4, tug_entries: 2, tug_wins: 2 },
@@ -40,31 +35,20 @@ export default function Home() {
         const res = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/high_scores')
         const data = await res.json()
 
-        if (
-          data &&
-          Array.isArray(data.highest_wpm) &&
-          Array.isArray(data.games_played) &&
-          Array.isArray(data.tug_entries) &&
-          Array.isArray(data.tug_wins)
-        ) {
-          setHighScoresByKey(data)
+        if (Array.isArray(data)) {
+          setAllScores(data)
         } else {
           throw new Error('Invalid structure')
         }
       } catch (err) {
-        setHighScoresByKey({
-          highest_wpm: [...mockHighScores].sort((a, b) => b.highest_wpm - a.highest_wpm),
-          games_played: [...mockHighScores].sort((a, b) => b.games_played - a.games_played),
-          tug_entries: [...mockHighScores].sort((a, b) => b.tug_entries - a.tug_entries),
-          tug_wins: [...mockHighScores].sort((a, b) => b.tug_wins - a.tug_wins),
-        })
+        setAllScores(mockHighScores)
       }
     }
 
     fetchScores()
   }, [])
 
-  const sortedScores = [...(highScoresByKey[selectedTab] || [])].sort((a, b) => {
+  const sortedScores = [...allScores].sort((a, b) => {
     const valA = a[selectedTab]
     const valB = b[selectedTab]
     return sortOrder === 'asc' ? valA - valB : valB - valA
@@ -74,7 +58,7 @@ export default function Home() {
     setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
   }
 
-  const tabLabels: { key: ScoreKey, label: string }[] = [
+  const tabLabels: { key: ScoreKey; label: string }[] = [
     { key: 'highest_wpm', label: 'WPM' },
     { key: 'games_played', label: 'Games Played' },
     { key: 'tug_entries', label: 'Tug Entries' },
@@ -99,6 +83,7 @@ export default function Home() {
           </motion.div>
         </motion.section>
 
+
         {/* How It Works */}
         <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} transition={{ staggerChildren: 0.2 }} className="grid sm:grid-cols-3 gap-10 text-center">
           {[
@@ -120,6 +105,7 @@ export default function Home() {
             Survive elimination every 10 seconds in <span className="text-arcade-accent">Survival Mode</span>, then face off in a <span className="text-arcade-accent">1v1 Tug-of-Words</span> finale.
           </p>
         </motion.section>
+
 
         {/* High Scores */}
         <motion.section initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.8 }} className="text-center space-y-6">
@@ -155,9 +141,7 @@ export default function Home() {
                 className="bg-black text-arcade-text"
                 initial="hidden"
                 animate="visible"
-                variants={{
-                  visible: { transition: { staggerChildren: 0.1 } }
-                }}
+                variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
               >
                 {sortedScores.map((row, idx) => (
                   <motion.tr
@@ -168,11 +152,22 @@ export default function Home() {
                     }}
                     className={`border-t border-arcade-border ${idx === 0 ? 'bg-arcade-gold bg-opacity-10' : ''}`}
                   >
-                    <td className="px-4 py-2 font-semibold">{idx === 0 ? '👑 ' : ''}{row.username}</td>
-                    <td className={`px-4 py-2 ${selectedTab === 'highest_wpm' ? 'text-arcade-accent font-bold' : ''}`}>{row.highest_wpm}</td>
-                    <td className={`px-4 py-2 ${selectedTab === 'games_played' ? 'text-arcade-accent font-bold' : ''}`}>{row.games_played}</td>
-                    <td className={`px-4 py-2 ${selectedTab === 'tug_entries' ? 'text-arcade-accent font-bold' : ''}`}>{row.tug_entries}</td>
-                    <td className={`px-4 py-2 ${selectedTab === 'tug_wins' ? 'text-arcade-accent font-bold' : ''}`}>{row.tug_wins}</td>
+                    <td className="px-4 py-2 font-semibold">
+                      {idx === 0 ? '👑 ' : ''}
+                      {row.username}
+                    </td>
+                    {(['highest_wpm', 'games_played', 'tug_entries', 'tug_wins'] as ScoreKey[]).map(col => (
+                      <td
+                        key={col}
+                        className={`px-4 py-2 transition-all duration-300 ${
+                          selectedTab === col
+                            ? 'text-arcade-accent font-bold opacity-100'
+                            : 'text-arcade-text opacity-30'
+                        }`}
+                      >
+                        {row[col]}
+                      </td>
+                    ))}
                   </motion.tr>
                 ))}
               </motion.tbody>
