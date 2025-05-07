@@ -25,7 +25,7 @@ const supabase = createClient(
 
 export default function GamePage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams()
-  const { id: gameId } = params
+  const gameId = params.id.replaceAll("%20", ' ')
   const username = searchParams?.get('username') || 'Player'
 
   const [prompts, setPrompts] = useState<Prompt[]>([])
@@ -203,7 +203,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
       const tugPrompts = json.data.tug_of_war.map((p: { text: string }) => ({ text: p.text }));
 
       console.log('Parsed prompts:', { regular: regularPrompts, tug: tugPrompts });
-      
+
       setPrompts(regularPrompts);
       setTugPrompts(tugPrompts);
       setCountdown(3);
