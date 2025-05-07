@@ -207,29 +207,32 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full">
-      <TugScoreboard
-        players={tugPlayers}
-        scores={state.scores}
-        roundWinner={state.roundWinner}
-      />
+    <main className="min-h-screen bg-black text-arcade-text font-sans overflow-hidden">
+      <div className="retro-grid opacity-50"></div>
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        <TugScoreboard
+            players={tugPlayers}
+            scores={state.scores}
+            roundWinner={state.roundWinner}
+        />
 
-      <TugPrompt
-        prompt={state.currentPrompt?.text || ''}
-        currentInput={currentInput}
-        onInputChange={handleInputChange}
-        isCooldown={state.isCooldown}
-        cooldownEndTime={state.cooldownEndTime}
-        gameStarted={state.gameStarted}
-        isSpectator={state.isSpectator}
-        onComplete={() => {
-          if (isProcessingRef.current) return;
-          isProcessingRef.current = true;
-          dispatch({ type: 'TUG_ROUND_END', payload: { winnerId: username } });
-          broadcastTugRoundEnd(username);
-          isProcessingRef.current = false;
-        }}
-      />
-    </div>
+        <TugPrompt
+            prompt={state.currentPrompt?.text || ''}
+            currentInput={currentInput}
+            onInputChange={handleInputChange}
+            isCooldown={state.isCooldown}
+            cooldownEndTime={state.cooldownEndTime}
+            gameStarted={state.gameStarted}
+            isSpectator={state.isSpectator}
+            onComplete={() => {
+              if (isProcessingRef.current) return;
+              isProcessingRef.current = true;
+              dispatch({type: 'TUG_ROUND_END', payload: {winnerId: username}});
+              broadcastTugRoundEnd(username);
+              isProcessingRef.current = false;
+            }}
+        />
+      </div>
+    </main>
   )
 }
