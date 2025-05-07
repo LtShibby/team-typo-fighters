@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
   const [username, setUsername] = useState('')
   const [gameId, setGameId] = useState('')
-  const [gameList, setGameList] = useState<string[]>(['abcdef', 'abfsdd'])
+  const [gameList, setGameList] = useState<string[]>([])
   const router = useRouter()
 
   async function uploadNewGame(roomCode: string) {
@@ -67,7 +68,7 @@ export default function Home() {
   const joinGame = async () => {
     if (!username || !gameId) return
 
-    if (gameList.includes(gameId)) {
+    if (!gameList.includes(gameId)) {
       const response = await uploadNewGame(gameId);
       console.log('API Response:', response);
     }
@@ -165,20 +166,26 @@ export default function Home() {
               Join existing game below
             </label>
             <ul className="space-y-4">
-              {gameList.map((room) => (
-                  <li
-                      key={room}
-                      className="p-4 bg-arcade-background shadow-md rounded-lg flex justify-between items-center"
-                  >
-                    <span className="text-xl font-medium">{room}</span>
-                    <button
-                        onClick={() => joinGameClicked(room)}
-                        className="arcade-button w-36 h-10"
+              <AnimatePresence>
+                {gameList.map((room) => (
+                    <motion.li
+                        key={room}
+                        initial={{y: -20, opacity: 0}} // Animation from
+                        animate={{y: 0, opacity: 1}}  // Animation to
+                        exit={{y: 20, opacity: 0}}    // Animation when removed
+                        layout
+                        className="p-4 bg-arcade-background shadow-md rounded-lg flex justify-between items-center"
                     >
-                      Join
-                    </button>
-                  </li>
-              ))}
+                      <span className="text-xl font-medium">{room}</span>
+                      <button
+                          onClick={() => joinGameClicked(room)}
+                          className="arcade-button w-36 h-10"
+                      >
+                        Join
+                      </button>
+                    </motion.li>
+                ))}
+              </AnimatePresence>
             </ul>
           </div>
         </div>
