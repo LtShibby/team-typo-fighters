@@ -96,7 +96,7 @@ export default function Home() {
           Team Typo Fighters
         </h1>
 
-        <div className="w-full max-w-md space-y-6">
+        <div className="space-y-6">
           <div className="space-y-2">
             <label htmlFor="username" className="block text-arcade-secondary font-arcade">
               *Enter Username
@@ -161,7 +161,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="space-y-2 font-arcade w-full max-w-md mx-auto mt-8">
+          <div className="space-y-2 font-arcade w-full mx-auto mt-8">
             <label htmlFor="gameId" className="block text-arcade-secondary font-arcade">
               Join existing game below
             </label>

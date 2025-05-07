@@ -6,6 +6,7 @@ export interface TugOfWarProps {
   player2: string
   tugStartTime: number
   onGameReset?: () => void
+  playerState: any[]
 }
 
 export interface TugPlayer {

@@ -2,7 +2,6 @@
 
 import { useSearchParams } from 'next/navigation'
 import {useState, useEffect, useCallback} from 'react'
-import { createClient } from '@supabase/supabase-js'
 
 import GameHeaderBanner from '@/app/components/GameHeaderBanner'
 import TypingPrompt from '@/app/components/TypingPrompt'
@@ -17,11 +16,6 @@ interface Prompt {
   text: string
   winnerId?: string
 }
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_API_KEY!
-)
 
 // Fallback prompts in case API fails
 const FALLBACKREGULARPROMPTS = [
@@ -65,8 +59,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
     broadcastGameStart,
     broadcastGameReset,
     broadcastElimination,
-    broadcastTugModeStart,
-    broadcastWinner
+    broadcastTugModeStart
   } = useGameChannel({
     gameId,
     username,
@@ -111,10 +104,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
         trackPresence({ words: wpm, isEliminated: true, finalWpm: finalWpm })
       }
     }, []),
-    onWinner: (winnerId) => {
-      setCountdown(null)
-      setStartTime(null)
-    },
     onTugModeStart: (player1, player2, startTime, newTugPrompts) =>{
       setIsTugMode(true)
       setTugPlayer1(player1)
@@ -122,9 +111,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
       setTugStartTime(startTime)
       if (newTugPrompts.length !== 0) {
         setTugPrompts(newTugPrompts.map(text => ({ text })))
-      }
-      if (username === player1 || username === player2) {
-        setFinalStats()
       }
     }
   })
@@ -139,21 +125,24 @@ export default function GamePage({ params }: { params: { id: string } }) {
     resetTimePassed,
     setGameStarted
   } = useTypingStats({
+    currentPrompt: prompts[0]?.text,
     onWpmChange: useCallback((newWpm: number) => {
-      if (isEliminated && finalWpm === null) {
-        setFinalStats()
+      if (!isEliminated) {
+        setFinalStats(newWpm)
       }
       trackPresence({ words: newWpm, isEliminated: isEliminated, finalWpm: finalWpm })
     }, [trackPresence]),
     isEliminated: isEliminated
   })
 
-  const setFinalStats = useCallback(() => {
-    setIsEliminated(true)
-    setFinalWpm(wpm)
-  }, [setIsEliminated, setFinalWpm, wpm])
+  const setFinalStats = useCallback((newWpm: number) => {
+    setFinalWpm(newWpm)
+  }, [setIsEliminated, setFinalWpm])
 
   const onPlayerElimination = useCallback(() => {
+    if (!isEliminated && !isTugMode) {
+      setFinalStats(wpm) // consistently update final stats in case of drop
+    }
     if (isHost) {
       const playersRemaining = players
         .filter(p => !p.isEliminated)
@@ -163,7 +152,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         const playerToElim = playersRemaining[0]
         broadcastElimination(playerToElim.id)
         if (playerToElim.id === username) {
-          setFinalStats()
+          setIsEliminated(true)
         }
         const remainingPlayers = playersRemaining.filter(p => p.id !== playerToElim.id)
         if (remainingPlayers.length === 2) {
@@ -177,7 +166,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
       }
     }
     resetTimePassed()
-  }, [isHost, wpm, username, timePassed, startTime, players, broadcastElimination, broadcastWinner, resetTimePassed])
+  }, [isHost, wpm, username, timePassed, startTime, players, broadcastElimination, resetTimePassed])
 
   // Add effect to track time passed for all players
   useEffect(() => {
@@ -256,6 +245,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
           broadcastGameReset()
           resetTypingStats()
         }}
+        playerState={players}
       />
     )
   }

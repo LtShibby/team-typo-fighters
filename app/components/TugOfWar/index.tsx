@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useCallback, useRef } from 'react'
+import {useReducer, useEffect, useCallback, useRef, useState} from 'react'
 import { useGameChannel } from '@/app/hooks/useGameChannel'
 import { useTypingStats } from '@/app/hooks/useTypingStats'
 import { TugOfWarProps, TugGameState, TugGameEvent } from './types'
@@ -78,7 +78,8 @@ function tugGameReducer(state: TugGameState, event: TugGameEvent): TugGameState 
   }
 }
 
-export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfWarProps) {
+export function TugOfWar({ gameId, username, prompts, player1, player2, playerState }: TugOfWarProps) {
+  const [hasSentScores, setHasSentScores] = useState(false)
   const [state, dispatch] = useReducer(tugGameReducer, {
     ...initialState,
     currentPrompt: prompts[0] || '',
@@ -103,9 +104,6 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
         }
       })
     },
-    onElimination: (eliminatedPlayer) => {
-      // Handle elimination if needed
-    },
     onTugPointAwarded: (playerId, newScore) => {
       state.scores[playerId] = newScore
       state.roundWinner = playerId
@@ -123,10 +121,40 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
         }, COOLDOWN_DURATION)
       }
     },
-    onWinner: (winnerId) => {
+    onWinner: async (winnerId) => {
       dispatch({ type: 'TUG_WINNER', payload: { winnerId } })
+      if (username === player1) {
+        await postHighScoreUpdates(winnerId)
+      }
     }
   })
+
+  const postHighScoreUpdates = useCallback(async (winnerId: string) => {
+    if (hasSentScores) return
+    setHasSentScores(true)
+    const highScoreUpdates = playerState.map(p => ({
+      username: p.id,
+      highest_wpm: p.finalWpm || 0,
+      games_played: 1,
+      tug_entries: p.id === player1 || p.id === player2 ? 1 : 0,
+      tug_wins: winnerId === p.id ? 1 : 0
+    }))
+
+    try {
+      const response = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/bulk_update_high_scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(highScoreUpdates)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to post scores: ${response.statusText}`)
+      }
+      console.log('High scores updated.')
+    } catch (err) {
+      console.error('Error posting high scores:', err)
+    }
+  }, [hasSentScores])
 
   const tugPlayers = players.filter(p => p.id === player1 || p.id === player2);
 
@@ -151,16 +179,6 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
       broadcastTimeoutRef.current = setTimeout(() => {
         // Broadcast point awarded
         broadcastTugPointAwarded(username, newScore) // Reusing elimination event for point awarding
-
-        dispatch({ type: 'TUG_POINT_AWARDED', payload: { playerId: username, newScore } })
-
-        // Check for winner
-        if (newScore >= WINNING_SCORE) {
-          broadcastWinner(username)
-        } else {
-          // Start cooldown
-          dispatch({ type: 'TUG_ROUND_END', payload: { winnerId: username } })
-        }
       }, 100) // Small delay to prevent rapid updates
     },
     currentPrompt: state.currentPrompt.text
