@@ -30,13 +30,22 @@ export function useTypingStats({
 
   useEffect(() => {
     if (startTime) {
-        const elapsed = (Date.now() - startTime) / 1000 / 60
-        const words = (text.length + previousPromptTextLength) / 5
-        const newWpm = Math.round(words / elapsed)
-        setWpm(newWpm)
-        onWpmChange?.(newWpm)
+      const elapsed = (Date.now() - startTime) / 1000 / 60
+      // Count only correctly typed characters
+      let correctChars = 0
+      if (currentPrompt) {
+        for (let i = 0; i < text.length && i < currentPrompt.length; i++) {
+          if (text[i] === currentPrompt[i]) {
+            correctChars++
+          }
+        }
+      }
+      const words = (correctChars + previousPromptTextLength) / 5
+      const newWpm = Math.round(words / elapsed)
+      setWpm(newWpm)
+      onWpmChange?.(newWpm)
     }
-  }, [text, timePassed, startTime, previousPromptTextLength, onWpmChange])
+  }, [text, timePassed, startTime, previousPromptTextLength, onWpmChange, currentPrompt])
 
   useEffect(() => {
     if (startTime) {
