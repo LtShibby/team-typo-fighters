@@ -23,7 +23,7 @@ export default function TypingInput({ value, prompt, onChange, onComplete, disab
         }
       }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' && value === prompt) {
+        if (e.key === 'Enter' && value === prompt && onComplete) {
           onComplete()
         }
       }}
