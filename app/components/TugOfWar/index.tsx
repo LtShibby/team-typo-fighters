@@ -4,6 +4,7 @@ import { useTypingStats } from '@/app/hooks/useTypingStats'
 import { TugOfWarProps, TugGameState, TugGameEvent } from './types'
 import { TugPrompt } from './TugPrompt'
 import { TugScoreboard } from './TugScoreboard'
+import EndGameScreen from '../EndGameScreen'
 
 const ROUND_TIMEOUT = 30000 // 30 seconds
 const COOLDOWN_DURATION = 3000 // 3 seconds
@@ -193,18 +194,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
   }
 
   if (state.gameWinner) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <h2 className="text-arcade-text text-4xl mb-4">
-          {state.gameWinner === username ? 'You Win!' : 'Game Over!'}
-        </h2>
-        <p className="text-arcade-text text-xl">
-          {state.gameWinner === username
-            ? 'Congratulations!'
-            : `${state.gameWinner} wins!`}
-        </p>
-      </div>
-    )
+    return <EndGameScreen winner={state.gameWinner} username={username} />
   }
 
   if (!state.gameStarted) {
