@@ -150,43 +150,43 @@ export default function Home() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [allScores, setAllScores] = useState<ScoreEntry[]>([])
 
-  const mockHighScores: ScoreEntry[] = [
-    {
-      username: 'keyboard_queen',
-      highest_wpm: 110,
-      games_played: 4,
-      tug_entries: 2,
-      tug_wins: 2,
-    },
-    {
-      username: 'fast_fingers',
-      highest_wpm: 95,
-      games_played: 6,
-      tug_entries: 4,
-      tug_wins: 1,
-    },
-    {
-      username: 'typo_tycoon',
-      highest_wpm: 88,
-      games_played: 10,
-      tug_entries: 7,
-      tug_wins: 3,
-    },
-    {
-      username: 'click_clack',
-      highest_wpm: 102,
-      games_played: 3,
-      tug_entries: 1,
-      tug_wins: 1,
-    },
-    {
-      username: 'wpm_warrior',
-      highest_wpm: 120,
-      games_played: 8,
-      tug_entries: 5,
-      tug_wins: 4,
-    },
-  ]
+  // const mockHighScores: ScoreEntry[] = [
+  //   {
+  //     username: 'keyboard_queen',
+  //     highest_wpm: 110,
+  //     games_played: 4,
+  //     tug_entries: 2,
+  //     tug_wins: 2,
+  //   },
+  //   {
+  //     username: 'fast_fingers',
+  //     highest_wpm: 95,
+  //     games_played: 6,
+  //     tug_entries: 4,
+  //     tug_wins: 1,
+  //   },
+  //   {
+  //     username: 'typo_tycoon',
+  //     highest_wpm: 88,
+  //     games_played: 10,
+  //     tug_entries: 7,
+  //     tug_wins: 3,
+  //   },
+  //   {
+  //     username: 'click_clack',
+  //     highest_wpm: 102,
+  //     games_played: 3,
+  //     tug_entries: 1,
+  //     tug_wins: 1,
+  //   },
+  //   {
+  //     username: 'wpm_warrior',
+  //     highest_wpm: 120,
+  //     games_played: 8,
+  //     tug_entries: 5,
+  //     tug_wins: 4,
+  //   },
+  // ]
 
   useEffect(() => {
     const fetchScores = async () => {
@@ -196,12 +196,16 @@ export default function Home() {
         const normalized = normalizeHighScores(json)
         if (normalized.length > 0) {
           setAllScores(normalized)
-        } else {
+        } 
+        if (normalized.length === 0) {
+          setAllScores(normalized)
+        }
+        else {
           throw new Error('Empty scores')
         }
       } catch (err) {
         console.warn('Failed to fetch high scores:', err)
-        setAllScores(mockHighScores)
+        // setAllScores(mockHighScores)
       }
     }
   
