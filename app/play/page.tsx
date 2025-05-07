@@ -64,8 +64,13 @@ export default function Home() {
     router.push(`/game/${newGameId}?username=${username}`)
   }
 
-  const joinGame = () => {
+  const joinGame = async () => {
     if (!username || !gameId) return
+
+    if (gameList.includes(gameId)) {
+      const response = await uploadNewGame(gameId);
+      console.log('API Response:', response);
+    }
     router.push(`/game/${gameId}?username=${username}`)
   }
 
@@ -104,7 +109,7 @@ export default function Home() {
                 placeholder="Player1"
             />
             <button
-                onClick={joinGame}
+                onClick={createGame}
                 className="arcade-button w-full"
             >
               Create Game
@@ -125,7 +130,7 @@ export default function Home() {
 
             <div className="space-y-4">
               <label htmlFor="gameId" className="block text-arcade-secondary font-arcade">
-                Enter room code
+                Enter your room code
               </label>
               <input
                   id="gameId"
@@ -155,7 +160,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="font-arcade w-full max-w-md mx-auto mt-8">
+          <div className="space-y-2 font-arcade w-full max-w-md mx-auto mt-8">
             <label htmlFor="gameId" className="block text-arcade-secondary font-arcade">
               Join existing game below
             </label>
