@@ -156,7 +156,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         }
         const remainingPlayers = playersRemaining.filter(p => p.id !== playerToElim.id)
         if (remainingPlayers.length === 2) {
-          const tugStartTime = Date.now() + 5000;
+          const tugStartTime = Date.now() + 7000;
           broadcastTugModeStart(remainingPlayers[0].id, remainingPlayers[1].id, tugStartTime, tugPrompts)
           setIsTugMode(true)
           setTugPlayer1(remainingPlayers[0].id)
@@ -219,7 +219,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
     }
 
     if (isHost && players.length === 2) {
-      const tugStartTime = Date.now() + 5000;
+      const tugStartTime = Date.now() + 7000;
       await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime, tugPrompts);
       setIsTugMode(true);
       setTugPlayer1(players[0].id);
