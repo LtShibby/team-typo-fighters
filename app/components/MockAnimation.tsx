@@ -24,23 +24,42 @@ export default function MockAnimation() {
   const [wpmMap, setWpmMap] = useState<{ [name: string]: number[] }>({})
   const [frozenWpm, setFrozenWpm] = useState<{ [name: string]: number }>({})
   const [tick, setTick] = useState(0)
+  const [hasStarted, setHasStarted] = useState(false)
 
-  // Generate WPM fluctuation map
-  useEffect(() => {
+  const resetSimulation = () => {
+    setEliminated([])
+    setShowTug(false)
+    setScores({})
+    setWinner(null)
+    setFrozenWpm({})
+    setTick(0)
+    setHasStarted(false)
+
     const initialMap: { [name: string]: number[] } = {}
     basePlayers.forEach((p) => {
       initialMap[p.name] = generateFluctuatingWPM(p.wpm)
     })
     setWpmMap(initialMap)
+  }
+
+  useEffect(() => {
+    resetSimulation()
   }, [])
 
-  // Elimination and showdown flow
   useEffect(() => {
-    if (winner || !Object.keys(wpmMap).length) return // Skip if winner exists or wpmMap is not ready
+    if (!hasStarted || showTug || winner) return
+    const interval = setInterval(() => {
+      setTick((t) => t + 1)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [hasStarted, showTug, winner])
+
+  const runSimulation = () => {
+    if (!Object.keys(wpmMap).length) return
+    resetSimulation()
+    setHasStarted(true)
 
     const timeouts: NodeJS.Timeout[] = []
-
-    console.log('Setting up elimination and showdown timeouts') // Debugging
 
     timeouts.push(
       setTimeout(() => {
@@ -87,31 +106,27 @@ export default function MockAnimation() {
 
           setScores({ TyperOne: typerScore, ClickClack: clickScore })
 
-          if (typerScore >= 3) setWinner('TyperOne')
-          else if (clickScore >= 3) setWinner('ClickClack')
+          if (typerScore >= 3 || clickScore >= 3) {
+            setWinner(typerScore >= 3 ? 'TyperOne' : 'ClickClack')
+          }
         }, delay)
       )
     })
-
-    return () => {
-      console.log('Cleaning up timeouts') // Debugging
-      timeouts.forEach(clearTimeout)
-    }
-  }, [winner, wpmMap]) // Removed tick from dependencies
-
-  // Tick for live WPM updates (only while active)
-  useEffect(() => {
-    if (showTug || winner) return // Freeze WPM on showdown or win
-
-    const interval = setInterval(() => {
-      setTick((t) => t + 1)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [showTug, winner])
+  }
 
   return (
     <section className="text-center space-y-8 mt-16">
       <h3 className="text-2xl font-bold text-arcade-accent">🤖 Simulation: TYPO FIGHT</h3>
+
+      <div className="mb-4">
+        <button
+          className="arcade-button px-6 py-2 text-lg"
+          onClick={runSimulation}
+          disabled={hasStarted && !winner}
+        >
+          {!hasStarted ? 'Run Simulation' : winner ? 'Re-Run Simulation' : 'Running...'}
+        </button>
+      </div>
 
       <div className="flex justify-center gap-8 flex-wrap">
         {basePlayers.map((p) => {
@@ -155,12 +170,8 @@ export default function MockAnimation() {
           )}
           <p className="text-lg text-arcade-muted">Final Showdown</p>
           <div className="flex justify-center gap-16 text-xl font-mono">
-            <div className="text-green-400">
-              TyperOne: {scores['TyperOne'] ?? 0}
-            </div>
-            <div className="text-green-400">
-              ClickClack: {scores['ClickClack'] ?? 0}
-            </div>
+            <div className="text-green-400">TyperOne: {scores['TyperOne'] ?? 0}</div>
+            <div className="text-green-400">ClickClack: {scores['ClickClack'] ?? 0}</div>
           </div>
         </div>
       )}
