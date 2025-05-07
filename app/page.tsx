@@ -37,7 +37,7 @@ export default function Home() {
   useEffect(() => {
     const fetchScores = async () => {
       try {
-        const res = await fetch('/api/high_scores')
+        const res = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/high_scores')
         const data = await res.json()
 
         if (
