@@ -29,6 +29,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const username = searchParams?.get('username') || 'Player'
 
   const [prompts, setPrompts] = useState<Prompt[]>([])
+  const [tugPrompts, setTugPrompts] = useState<Prompt[]>([])
   const [countdown, setCountdown] = useState<number | null>(null)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [isTugMode, setIsTugMode] = useState(false)
@@ -168,44 +169,73 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const handleStartGame = async () => {
     const startTime = Date.now() + 3000;
 
-    let finalPrompts: { text: string }[] = [];
+    // Fallback prompts in case API fails
+    const fallbackRegularPrompts = [
+      { text: 'Life before death. Strength before weakness. Journey before destination.' },
+      { text: 'Honor is not dead so long as he lives in the hearts of men.' },
+      { text: 'Some men may be stronger than others. That does not give them the right to dominate those who are weaker.' },
+      { text: 'You mustnt kneel to me. The Knights Radiant must stand again.' },
+      { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
+    ];
+
+    const fallbackTugPrompts = [
+      { text: 'What is sanity, but a shared hallucination we cling to in a universe that forgot its own rules?' },
+      { text: 'All this happened, more or less.' },
+      { text: 'QUANTUM COLLAPSE: superposition lost in /dev/void' },
+      { text: 'VIRUS DETECTED: recursive thoughts infecting /mind/os' },
+      { text: 'I am the voice between the beats. I am what is lost in the pause. I am the silence that screams.' }
+    ];
 
     try {
       const response = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/get_game_prompts');
       const json = await response.json();
-      console.log('json: ', json);
+      console.log('API Response:', json);
 
-      if (json?.data && Array.isArray(json.data)) {
-        finalPrompts = json.data.filter((p: { text: unknown }) => typeof p.text === 'string') as { text: string }[];
-        console.log('finalPrompts: ', finalPrompts);
-      } else {
+      if (!json?.data?.result || !Array.isArray(json.data.result)) {
         throw new Error('Invalid prompt format from API');
       }
 
-      console.log('Fetched prompts from Railway:', finalPrompts)
+      if (!json?.data?.tug_of_war || !Array.isArray(json.data.tug_of_war)) {
+        throw new Error('Invalid tug of war prompt format from API');
+      }
+
+      const regularPrompts = json.data.result.map((p: { text: string }) => ({ text: p.text }));
+      const tugPrompts = json.data.tug_of_war.map((p: { text: string }) => ({ text: p.text }));
+
+      console.log('Parsed prompts:', { regular: regularPrompts, tug: tugPrompts });
+      
+      setPrompts(regularPrompts);
+      setTugPrompts(tugPrompts);
+      setCountdown(3);
+
+      await broadcastGameStart(regularPrompts, startTime);
+
+      if (isHost && players.length === 2) {
+        const tugStartTime = Date.now() + 5000;
+        await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime);
+        setIsTugMode(true);
+        setTugPlayer1(players[0].id);
+        setTugPlayer2(players[1].id);
+        setTugStartTime(tugStartTime);
+        return;
+      }
     } catch (err) {
-      console.warn('Failed to fetch from Railway, using fallback prompts:', err);
-      finalPrompts = [
-        { text: 'Life before death. Strength before weakness. Journey before destination.' },
-        { text: 'Honor is not dead so long as he lives in the hearts of men.' },
-        { text: 'Some men may be stronger than others. That does not give them the right to dominate those who are weaker.' },
-        { text: 'You mustnt kneel to me. The Knights Radiant must stand again.' },
-        { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
-      ];
-    }
-    setPrompts(finalPrompts)
-    setCountdown(3)
+      console.warn('Failed to fetch from API, using fallback prompts:', err);
+      setPrompts(fallbackRegularPrompts);
+      setTugPrompts(fallbackTugPrompts);
+      setCountdown(3);
 
-    await broadcastGameStart(finalPrompts, startTime)
+      await broadcastGameStart(fallbackRegularPrompts, startTime);
 
-    if (isHost && players.length === 2) {
-      const tugStartTime = Date.now() + 5000;
-      await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime)
-      setIsTugMode(true)
-      setTugPlayer1(players[0].id)
-      setTugPlayer2(players[1].id)
-      setTugStartTime(tugStartTime)
-      return
+      if (isHost && players.length === 2) {
+        const tugStartTime = Date.now() + 5000;
+        await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime);
+        setIsTugMode(true);
+        setTugPlayer1(players[0].id);
+        setTugPlayer2(players[1].id);
+        setTugStartTime(tugStartTime);
+        return;
+      }
     }
   }
 

@@ -8,6 +8,7 @@ interface TugPromptProps {
   cooldownEndTime: number | null
   gameStarted: boolean
   isSpectator: boolean
+  onComplete: () => void
 }
 
 export function TugPrompt({
@@ -17,7 +18,8 @@ export function TugPrompt({
   isCooldown,
   cooldownEndTime,
   gameStarted,
-  isSpectator
+  isSpectator,
+  onComplete
 }: TugPromptProps) {
   const [cooldownTimeLeft, setCooldownTimeLeft] = useState<number>(0)
 
@@ -77,9 +79,17 @@ export function TugPrompt({
           type="text"
           value={currentInput}
           onChange={(e) => onInputChange(e.target.value)}
-          disabled={isCooldown}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && currentInput === prompt) {
+              onComplete()
+            }
+          }}
+          onPaste={(e) => e.preventDefault()}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
           className="w-full p-4 text-xl font-mono bg-arcade-bg border-2 border-arcade-text text-black rounded-lg focus:outline-none focus:border-arcade-accent disabled:opacity-50"
           placeholder={isCooldown ? 'Waiting for next round...' : 'Start typing...'}
+          disabled={isCooldown}
         />
       </div>
     </div>

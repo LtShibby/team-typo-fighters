@@ -141,6 +141,15 @@ export function useGameChannel({
     }
   }, [gameId, username])
 
+  const broadcastTugRoundEnd = async (winnerId: string) => {
+    if (!channelRef.current) return;
+    await channelRef.current.send({
+      type: 'broadcast',
+      event: 'tug_round_end',
+      payload: { winnerId }
+    });
+  };
+
   return {
     isChannelReady,
     isHost,
@@ -162,6 +171,7 @@ export function useGameChannel({
     broadcastTugPointAwarded: (playerId: string, newScore: number) =>
       sendBroadcast('tug_point_awarded', { playerId, newScore }),
     broadcastTugWinner: (winnerId: string) =>
-      sendBroadcast('tug_winner', { winnerId })
+      sendBroadcast('tug_winner', { winnerId }),
+    broadcastTugRoundEnd
   }
 }

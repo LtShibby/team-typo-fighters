@@ -82,7 +82,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
     state.isSpectator = false
   }
 
-  const { isChannelReady, players, broadcastTugPointAwarded, broadcastWinner } = useGameChannel({
+  const { isChannelReady, players, broadcastTugPointAwarded, broadcastWinner, broadcastTugRoundEnd } = useGameChannel({
     gameId,
     username,
     onGameStart: (newPrompts) => {
@@ -226,6 +226,13 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
         cooldownEndTime={state.cooldownEndTime}
         gameStarted={state.gameStarted}
         isSpectator={state.isSpectator}
+        onComplete={() => {
+          if (isProcessingRef.current) return;
+          isProcessingRef.current = true;
+          dispatch({ type: 'TUG_ROUND_END', payload: { winnerId: username } });
+          broadcastTugRoundEnd(username);
+          isProcessingRef.current = false;
+        }}
       />
     </div>
   )

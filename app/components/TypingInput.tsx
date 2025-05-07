@@ -22,12 +22,15 @@ export default function TypingInput({ value, prompt, onChange, onComplete, disab
           onComplete()
         }
       }}
-      onPaste={(e) => {
-        e.preventDefault()
-        alert('Nice try, but no pasting allowed.')
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && value === prompt) {
+          onComplete()
+        }
       }}
-      className="arcade-input w-full mt-2"
-      style={{ display: disabled ? 'none' : '' }}
+      onPaste={(e) => e.preventDefault()}
+      onCopy={(e) => e.preventDefault()}
+      onCut={(e) => e.preventDefault()}
+      className="w-full p-4 text-xl font-mono bg-arcade-bg border-2 border-arcade-text text-black rounded-lg focus:outline-none focus:border-arcade-accent disabled:opacity-50"
       placeholder="Start typing..."
       disabled={disabled}
     />
