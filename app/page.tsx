@@ -49,7 +49,7 @@ function TypingAnimation({
   as: Tag = 'span',
   className,
   typingSpeed = 200,
-  typoChance = 0.1,
+  typoChance = 0.25,
   onComplete,
 }: TypingAnimationProps) {
   const [displayText, setDisplayText] = useState('')
@@ -209,10 +209,10 @@ export default function Home() {
           className="text-center space-y-6"
         >
           <TypingAnimation
-            text="Team Typo Fighters"
+            text="Typo Fighters"
             as="h1"
             className="text-4xl sm:text-5xl font-arcade text-arcade-accent tracking-widest"
-            typingSpeed={400}
+            typingSpeed={300}
           />
           <TypingAnimation
             text="A real-time typing battle royale. Outtype. Outlive. Outlast."
@@ -316,7 +316,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="text-center text-sm text-arcade-muted pt-10 border-t border-arcade-border">
-          Built with 💀 and ☕ by Team Typo Fighters for ACV Hackathon 2025
+          Forged with 🔥, grit, and endless ☕ by <span className="text-arcade-accent">Team Tpyo Fihgters</span> — <span className="text-arcade-primary">ACV Hackathon 2025</span>
         </footer>
       </div>
     </main>
