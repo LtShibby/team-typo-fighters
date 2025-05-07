@@ -84,7 +84,7 @@ export default function Home() {
               >
                   <h2 className="text-3xl font-bold text-arcade-accent">Game Modes</h2>
                   <p className="text-md text-arcade-muted max-w-xl mx-auto">
-                      Survive elimination every 20 seconds in <span className="text-arcade-accent">Survival Mode</span>, then face off in a <span className="text-arcade-accent">1v1 Tug-of-Words</span> finale.
+                      Survive elimination every 10 seconds in <span className="text-arcade-accent">Survival Mode</span>, then face off in a <span className="text-arcade-accent">1v1 Tug-of-Words</span> finale.
                   </p>
               </motion.section>
 
