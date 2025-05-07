@@ -140,7 +140,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         const remainingPlayers = playersRemaining.filter(p => p.id !== playerToElim.id)
         if (remainingPlayers.length === 2) {
           const tugStartTime = Date.now() + 5000;
-          broadcastTugModeStart(remainingPlayers[0].id, remainingPlayers[1].id, tugStartTime)
+          broadcastTugModeStart(remainingPlayers[0].id, remainingPlayers[1].id, tugStartTime, tugPrompts)
           setIsTugMode(true)
           setTugPlayer1(remainingPlayers[0].id)
           setTugPlayer2(remainingPlayers[1].id)
@@ -208,11 +208,11 @@ export default function GamePage({ params }: { params: { id: string } }) {
       setTugPrompts(tugPrompts);
       setCountdown(3);
 
-      await broadcastGameStart(regularPrompts, startTime);
+      await broadcastGameStart(regularPrompts, startTime, tugPrompts);
 
       if (isHost && players.length === 2) {
         const tugStartTime = Date.now() + 5000;
-        await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime);
+        await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime, tugPrompts);
         setIsTugMode(true);
         setTugPlayer1(players[0].id);
         setTugPlayer2(players[1].id);
@@ -225,11 +225,11 @@ export default function GamePage({ params }: { params: { id: string } }) {
       setTugPrompts(fallbackTugPrompts);
       setCountdown(3);
 
-      await broadcastGameStart(fallbackRegularPrompts, startTime);
+      await broadcastGameStart(fallbackRegularPrompts, startTime, tugPrompts);
 
       if (isHost && players.length === 2) {
         const tugStartTime = Date.now() + 5000;
-        await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime);
+        await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime, tugPrompts);
         setIsTugMode(true);
         setTugPlayer1(players[0].id);
         setTugPlayer2(players[1].id);
@@ -248,7 +248,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
       <TugOfWar
         gameId={gameId}
         username={username}
-        prompts={prompts.map(p => p.text)}
+        prompts={tugPrompts}
         player1={tugPlayer1}
         player2={tugPlayer2}
         tugStartTime={tugStartTime!}
