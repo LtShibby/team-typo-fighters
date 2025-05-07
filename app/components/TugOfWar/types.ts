@@ -34,3 +34,4 @@ export type TugGameEvent =
   | { type: 'TUG_ROUND_END'; payload: { winnerId: string | null } }
   | { type: 'TUG_COOLDOWN_START'; payload: { endTime: number } }
   | { type: 'TUG_COOLDOWN_END' }
+  | { type: 'TUG_COUNTDOWN_END' }

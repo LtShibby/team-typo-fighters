@@ -19,7 +19,7 @@ export function TugScoreboard({ players, scores, roundWinner }: TugScoreboardPro
   return (
       <div>
           <div className="font-arcade w-full max-w-2xl mx-auto mb-6 mt-8 text-center text-arcade-accent text-2xl font-bold">
-              First to 5 wins!
+              First to 3 wins!
           </div>
           <div className="font-arcade w-full max-w-2xl mx-auto mb-8 mt-10">
               <div className="flex flex-col items-center text-center text-arcade-text text-2xl font-bold">

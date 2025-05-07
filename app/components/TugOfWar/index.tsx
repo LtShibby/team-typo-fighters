@@ -8,7 +8,7 @@ import { TugScoreboard } from './TugScoreboard'
 const ROUND_TIMEOUT = 30000 // 30 seconds
 const COOLDOWN_DURATION = 3000 // 3 seconds
 const COUNTDOWN_DURATION = 7000 // 7 seconds
-const WINNING_SCORE = 5
+const WINNING_SCORE = 3
 
 const initialState: TugGameState = {
   currentPrompt: '',
@@ -64,6 +64,13 @@ function tugGameReducer(state: TugGameState, event: TugGameEvent): TugGameState 
         roundWinner: null,
         currentPrompt: nextPrompt,
         promptIndex: nextIndex
+      }
+    case 'TUG_COUNTDOWN_END':
+      return {
+        ...state,
+        isCooldown: false,
+        cooldownEndTime: null,
+        roundWinner: null
       }
     default:
       return state
@@ -148,11 +155,6 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
         } else {
           // Start cooldown
           dispatch({ type: 'TUG_ROUND_END', payload: { winnerId: username } })
-          setTimeout(() => {
-            dispatch({ type: 'TUG_COOLDOWN_END' })
-            resetInput()
-            isProcessingRef.current = false
-          }, COOLDOWN_DURATION)
         }
       }, 100) // Small delay to prevent rapid updates
     },
@@ -203,7 +205,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
 
   if (!state.gameStarted) {
     setTimeout(() => {
-      dispatch({type: 'TUG_COOLDOWN_END'})
+      dispatch({type: 'TUG_COUNTDOWN_END'})
       resetInput()
       isProcessingRef.current = false
       state.gameStarted = true
