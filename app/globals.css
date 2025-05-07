@@ -6,21 +6,27 @@
 
 @layer base {
   body {
-    @apply antialiased;
+    @apply antialiased bg-black;
+  }
+
+  :root {
+    --grid-size: 40px;
+    --grid-color: rgba(78, 205, 196, 0.2);  /* Using arcade-secondary with opacity */
+    --grid-blur: 2px;
+    --grid-perspective: 500px;
   }
 }
 
 @layer components {
   .arcade-button {
-    @apply px-6 py-3 bg-arcade-primary text-arcade-text font-arcade
-           rounded-lg shadow-lg hover:bg-opacity-90 transition-all
-           transform hover:scale-105 active:scale-95;
+    @apply bg-arcade-accent text-black font-arcade rounded-lg 
+    transition-all duration-200 hover:bg-arcade-accent/90 
+    focus:outline-none focus:ring-2 focus:ring-arcade-accent focus:ring-offset-2;
   }
 
   .arcade-input {
-    @apply px-4 py-2 bg-arcade-background border-2 border-arcade-secondary
-           text-arcade-text font-arcade rounded-lg focus:outline-none
-           focus:border-arcade-accent;
+    @apply p-4 bg-arcade-background border-2 border-arcade-text text-arcade-text rounded-lg 
+    focus:outline-none focus:border-arcade-accent font-arcade;
   }
 
   .arcade-button {
@@ -31,24 +37,17 @@
 
     /* Timer Bar Container Styles */
     .timer-bar-container {
-        @apply relative w-full h-8 bg-arcade-background border border-arcade-secondary rounded-md overflow-hidden;
-        margin-top: 10px;
-        margin-bottom: 10px;
+        @apply w-full h-2 bg-arcade-background rounded-full overflow-hidden mb-4;
     }
 
     /* Timer Bar (progress indicator) */
     .timer-bar {
-        @apply h-full bg-arcade-secondary;
-        width: 0%; /* Initial width */
-        transition: width linear; /* Smooth progress bar animation */
+        @apply h-full bg-arcade-accent transition-all duration-100;
     }
 
     /* Timer Label */
     .timer-label {
-        @apply absolute text-center font-bold text-white select-none; /* Absolute center */
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        @apply text-arcade-text text-sm font-arcade;
     }
 
     .playerListTitle {
@@ -57,7 +56,66 @@
     }
 
     .eliminatedListTitle {
-        @apply text-lg space-y-1 font-arcade text-left;
-        margin-top: 10px;
+        @apply text-lg space-y-1 font-arcade text-left text-arcade-primary;
     }
+}
+
+/* Retro Grid Background */
+.retro-grid {
+  background-color: transparent;
+  background-image: 
+    linear-gradient(var(--grid-color) 2px, transparent 2px),
+    linear-gradient(90deg, var(--grid-color) 2px, transparent 2px);
+  background-size: var(--grid-size) var(--grid-size);
+  background-position: center center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform-origin: center;
+  transform: perspective(var(--grid-perspective)) rotateX(60deg);
+  overflow: hidden;
+}
+
+.retro-grid::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at 50% 0%, 
+    rgba(78, 205, 196, 0.15),  /* arcade-secondary with low opacity */
+    rgba(0, 0, 0, 0.7) 70%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+.retro-grid::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: blur(var(--grid-blur));
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Grid Animation */
+@keyframes gridMove {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 var(--grid-size);
+  }
+}
+
+.retro-grid {
+  animation: gridMove 2s linear infinite;
 }

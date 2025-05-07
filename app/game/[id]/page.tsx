@@ -240,23 +240,31 @@ export default function GamePage({ params }: { params: { id: string } }) {
   }
 
   if (!isChannelReady) {
-    return <div className="text-arcade-text">Loading...</div>
+    return (
+      <main className="min-h-screen bg-black text-arcade-text font-sans overflow-hidden">
+        <div className="retro-grid opacity-50"></div>
+        <div className="relative z-10 flex items-center justify-center h-screen">
+          <div className="text-arcade-text">Loading...</div>
+        </div>
+      </main>
+    )
   }
 
   if (isTugMode) {
     return (
-      <TugOfWar
-        gameId={gameId}
-        username={username}
-        prompts={prompts.map(p => p.text)}
-        player1={tugPlayer1}
-        player2={tugPlayer2}
-        tugStartTime={tugStartTime!}
-        onGameReset={() => {
-          broadcastGameReset()
-          resetTypingStats()
-        }}
-      />
+      <main className="min-h-screen bg-black text-arcade-text font-sans overflow-hidden">
+        <div className="retro-grid opacity-50"></div>
+        <div className="relative z-10">
+          <TugOfWar
+            gameId={gameId}
+            username={username}
+            prompts={tugPrompts.map(p => p.text)}
+            player1={tugPlayer1}
+            player2={tugPlayer2}
+            tugStartTime={tugStartTime!}
+          />
+        </div>
+      </main>
     )
   }
 
@@ -273,9 +281,10 @@ export default function GamePage({ params }: { params: { id: string } }) {
   // })
 
   return (
-    <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
-      <div className="max-w-3xl mx-auto space-y-10">
-        <GameHeaderBanner roomId={gameId} username={username}/>
+    <main className="min-h-screen bg-black text-arcade-text font-sans overflow-hidden">
+      <div className="retro-grid opacity-50"></div>
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        <GameHeaderBanner roomId={gameId} username={username} />
 
         {isChannelReady && (
           <>

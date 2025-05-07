@@ -14,8 +14,9 @@ export default function Home() {
   }, [])
 
   return (
-      <main className="min-h-screen bg-arcade-background text-arcade-text font-sans overflow-x-hidden">
-          <div className="max-w-5xl mx-auto px-4 py-24 space-y-24">
+      <main className="min-h-screen bg-black text-arcade-text font-sans overflow-hidden">
+          <div className="retro-grid opacity-50"></div>
+          <div className="relative z-10 max-w-5xl mx-auto px-4 py-24 space-y-24">
 
               {/* Hero */}
               <motion.section
