@@ -46,7 +46,7 @@ export function TugPrompt({
       <div className="mb-8">
         {isCooldown ? (
           <div className="text-center">
-            <div className="text-3xl mb-2 text-arcade-text">{gameStarted ? "Round Over!" : "Prepare for the final fight!"}</div>
+            <div className="text-3xl mb-2 text-arcade-text">{gameStarted ? "Round Over!" : (isSpectator ? "Prepare to witness the final fight!": "Prepare for the final fight!")}</div>
             <div className="text-lg text-arcade-text">
               Next round in {(cooldownTimeLeft / 1000).toFixed(1)}s
             </div>

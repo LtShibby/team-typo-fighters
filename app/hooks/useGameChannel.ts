@@ -16,10 +16,10 @@ export interface Player {
 interface UseGameChannelProps {
   gameId: string
   username: string
-  onGameStart?: (prompts: string[], startTime: number) => void
+  onGameStart?: (prompts: string[], startTime: number, tugPrompts: string[]) => void
   onGameReset?: () => void
   onElimination?: (eliminatedPlayer: string) => void
-  onTugModeStart?: (player1:string, player2:string, startTime: number) => void
+  onTugModeStart?: (player1:string, player2:string, startTime: number, tugPrompts: string[]) => void
   onWinner?: (winnerId: string) => void
   onTugPointAwarded?: (playerId: string, newScore: number) => void
   onTugWinner?: (winnerId: string) => void
@@ -98,8 +98,8 @@ export function useGameChannel({
     channel
       .on('presence', { event: 'sync' }, () => handlePresenceSync(channel))
       .on('broadcast', { event: 'game_start' }, ({ payload }) => {
-        const { prompts, startTime } = payload
-        onGameStart?.(prompts.map((p: any) => p.text), startTime)
+        const { prompts, startTime, tugPrompts } = payload
+        onGameStart?.(prompts.map((p: any) => p.text), startTime, tugPrompts.map((p: any) => p.text))
       })
       .on('broadcast', { event: 'game_reset' }, () => {
         onGameReset?.()
@@ -112,7 +112,7 @@ export function useGameChannel({
         onWinner?.(payload.winnerId)
       })
       .on('broadcast', { event: 'tug_mode_start' }, ({ payload }) => {
-        onTugModeStart?.(payload.player1, payload.player2, payload.startTime)
+        onTugModeStart?.(payload.player1, payload.player2, payload.startTime, payload.tugPrompts.map((p: any) => p.text))
       })
       .on('broadcast', { event: 'tug_point_awarded' }, ({ payload }) => {
         onTugPointAwarded?.(payload.playerId, payload.newScore)
@@ -158,14 +158,14 @@ export function useGameChannel({
     trackPresence,
     isEliminated,
     setIsEliminated,
-    broadcastGameStart: (prompts: any[], startTime: number) =>
-      sendBroadcast('game_start', { prompts, startTime }),
+    broadcastGameStart: (prompts: any[], startTime: number, tugPrompts: any[]) =>
+      sendBroadcast('game_start', { prompts, startTime, tugPrompts }),
     broadcastGameReset: () =>
       sendBroadcast('game_reset', {}),
     broadcastElimination: (eliminatedPlayer: string) =>
       sendBroadcast('game_elimination', { newElimination: eliminatedPlayer }),
-    broadcastTugModeStart: (player1: string, player2: string, startTime: number) =>
-      sendBroadcast('tug_mode_start', { player1, player2, startTime }),
+    broadcastTugModeStart: (player1: string, player2: string, startTime: number, tugPrompts: any[]) =>
+      sendBroadcast('tug_mode_start', { player1, player2, startTime, tugPrompts }),
     broadcastWinner: (winnerId: string) =>
       sendBroadcast('game_winner', { winnerId }),
     broadcastTugPointAwarded: (playerId: string, newScore: number) =>

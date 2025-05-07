@@ -12,6 +12,7 @@ import { useMemo } from 'react'
 export default function PlayerList({ players, currentUser, currentWPM, gameStarted }: { players: any[], currentUser: string, currentWPM: number, gameStarted: boolean }) {
     const eliminatedPlayers:any[] = [];
     const activePlayers:any[] = [];
+    const hostId = players?.[0]?.id;
     players.forEach(player => {
         if (player.isEliminated) {
             eliminatedPlayers.push(player);
@@ -26,8 +27,8 @@ export default function PlayerList({ players, currentUser, currentWPM, gameStart
 
     const makeUserListItem = (player: any) => {
         return (<li key={player.id} className="flex justify-between">
-                    <span className={player.id === currentUser ? 'text-arcade-accent' : ''}>
-                      {player.id === currentUser ? `${player.id} (You)` : player.id}
+                    <span className={player.id === currentUser ? 'text-arcade-accent' : (player.id === hostId ? 'text-arcade-secondary' : '')}>
+                      {player.id === currentUser ? `${player.id} (You)` : player.id}{player.id === hostId ? ' (Host)' : ''}
                     </span>
                     {gameStarted
                         ? (<span

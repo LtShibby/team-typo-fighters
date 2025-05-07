@@ -11,7 +11,7 @@ const COUNTDOWN_DURATION = 7000 // 7 seconds
 const WINNING_SCORE = 3
 
 const initialState: TugGameState = {
-  currentPrompt: '',
+  currentPrompt: {text: ''},
   promptIndex: 0,
   prompts: [],
   scores: {},
@@ -28,9 +28,9 @@ function tugGameReducer(state: TugGameState, event: TugGameEvent): TugGameState 
     case 'TUG_MODE_START':
       return {
         ...state,
-        currentPrompt: event.payload.prompts[0] || '',
+        currentPrompt: event.payload.prompts?.length == 0 ? state.currentPrompt : event.payload.prompts[0] || {text: ''},
         promptIndex: 0,
-        prompts: event.payload.prompts,
+        prompts: event.payload.prompts?.length == 0 ? state.prompts : event.payload.prompts,
         isCooldown: true,
         cooldownEndTime: Date.now() + COUNTDOWN_DURATION
       }
@@ -92,8 +92,15 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
   const { isChannelReady, players, broadcastTugPointAwarded, broadcastWinner, broadcastTugRoundEnd } = useGameChannel({
     gameId,
     username,
-    onGameStart: (newPrompts) => {
-      dispatch({ type: 'TUG_MODE_START', payload: { prompts: newPrompts } })
+    onGameStart: (newPrompts, startTime, tugPrompts) => {
+      dispatch({
+        type: 'TUG_MODE_START',
+        payload: {
+          prompts: tugPrompts.map(p => {
+            return {text: p}
+          })
+        }
+      })
     },
     onElimination: (eliminatedPlayer) => {
       // Handle elimination if needed
@@ -114,9 +121,6 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
           isProcessingRef.current = false
         }, COOLDOWN_DURATION)
       }
-    },
-    onTugModeStart: (newPrompts) => {
-
     },
     onWinner: (winnerId) => {
       dispatch({ type: 'TUG_WINNER', payload: { winnerId } })
@@ -158,7 +162,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
         }
       }, 100) // Small delay to prevent rapid updates
     },
-    currentPrompt: state.currentPrompt
+    currentPrompt: state.currentPrompt.text
   })
 
   const isProcessingRef = useRef(false)
@@ -209,7 +213,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
       resetInput()
       isProcessingRef.current = false
       state.gameStarted = true
-    }, COOLDOWN_DURATION)
+    }, COUNTDOWN_DURATION)
   }
 
   return (
@@ -221,7 +225,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2 }: TugOfW
       />
 
       <TugPrompt
-        prompt={state.currentPrompt}
+        prompt={state.currentPrompt?.text || ''}
         currentInput={currentInput}
         onInputChange={handleInputChange}
         isCooldown={state.isCooldown}
