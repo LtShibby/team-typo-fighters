@@ -98,6 +98,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
       setTugPlayer1(player1)
       setTugPlayer2(player2)
       setTugStartTime(startTime)
+      if (username === player1 || username === player2) {
+        setFinalStats()
+      }
     }
   })
 
@@ -121,7 +124,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
   })
 
   const setFinalStats = useCallback(() => {
-    setIsEliminated(true)
     setFinalWpm(wpm)
   }, [setIsEliminated, setFinalWpm, wpm])
 
@@ -135,6 +137,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
         const playerToElim = playersRemaining[0]
         broadcastElimination(playerToElim.id)
         if (playerToElim.id === username) {
+          setIsEliminated(true)
           setFinalStats()
         }
         const remainingPlayers = playersRemaining.filter(p => p.id !== playerToElim.id)
@@ -203,7 +206,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
       const tugPrompts = json.data.tug_of_war.map((p: { text: string }) => ({ text: p.text }));
 
       console.log('Parsed prompts:', { regular: regularPrompts, tug: tugPrompts });
-      
+
       setPrompts(regularPrompts);
       setTugPrompts(tugPrompts);
       setCountdown(3);
