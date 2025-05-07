@@ -70,14 +70,6 @@ export function useTypingStats({
     }
   }, [text, currentPrompt, onComplete])
 
-  const reset = () => {
-    setText('')
-    setPreviousPromptTextLength(0)
-    setStartTime(null)
-    setWpm(0)
-    setTimePassed(null)
-  }
-
   const updateText = (newText: string) => {
     setText(newText)
   }
@@ -95,7 +87,6 @@ export function useTypingStats({
     wpm,
     timePassed,
     startTime,
-    reset,
     updateText,
     updatePreviousPromptLength,
     resetTimePassed,

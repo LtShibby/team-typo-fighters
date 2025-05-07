@@ -27,6 +27,7 @@ export default function TypingInput({ value, prompt, onChange, onComplete, disab
           onComplete()
         }
       }}
+      autoFocus={true}
       onPaste={(e) => e.preventDefault()}
       onCopy={(e) => e.preventDefault()}
       onCut={(e) => e.preventDefault()}

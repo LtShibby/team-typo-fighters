@@ -119,7 +119,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
     text,
     wpm,
     timePassed,
-    reset: resetTypingStats,
     updateText,
     updatePreviousPromptLength,
     resetTimePassed,
@@ -243,7 +242,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
         tugStartTime={tugStartTime!}
         onGameReset={() => {
           broadcastGameReset()
-          resetTypingStats()
         }}
         playerState={players}
       />

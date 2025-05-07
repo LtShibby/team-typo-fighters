@@ -84,6 +84,7 @@ export function TugPrompt({
               onComplete()
             }
           }}
+          autoFocus={true}
           onPaste={(e) => e.preventDefault()}
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}

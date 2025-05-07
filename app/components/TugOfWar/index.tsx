@@ -116,7 +116,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2, playerSt
         dispatch({ type: 'TUG_ROUND_END', payload: { winnerId: playerId } })
         setTimeout(() => {
           dispatch({ type: 'TUG_COOLDOWN_END' })
-          resetInput()
+          handleInputChange('')
           isProcessingRef.current = false
         }, COOLDOWN_DURATION)
       }
@@ -160,8 +160,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2, playerSt
 
   const {
     text: currentInput,
-    updateText: handleInputChange,
-    reset: resetInput
+    updateText: handleInputChange
   } = useTypingStats({
     onComplete: () => {
       if (state.isCooldown || state.gameWinner || isProcessingRef.current) return
@@ -195,7 +194,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2, playerSt
       dispatch({ type: 'TUG_ROUND_END', payload: { winnerId: null } })
       setTimeout(() => {
         dispatch({ type: 'TUG_COOLDOWN_END' })
-        resetInput()
+        handleInputChange('')
       }, COOLDOWN_DURATION)
     }, ROUND_TIMEOUT)
 
@@ -205,7 +204,7 @@ export function TugOfWar({ gameId, username, prompts, player1, player2, playerSt
         clearTimeout(broadcastTimeoutRef.current)
       }
     }
-  }, [state.isCooldown, state.gameWinner, resetInput])
+  }, [state.isCooldown, state.gameWinner])
 
   if (!isChannelReady) {
     return <div className="text-arcade-text">Loading...</div>
@@ -218,7 +217,6 @@ export function TugOfWar({ gameId, username, prompts, player1, player2, playerSt
   if (!state.gameStarted) {
     setTimeout(() => {
       dispatch({type: 'TUG_COUNTDOWN_END'})
-      resetInput()
       isProcessingRef.current = false
       state.gameStarted = true
     }, COUNTDOWN_DURATION)
