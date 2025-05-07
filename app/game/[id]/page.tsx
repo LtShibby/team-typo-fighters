@@ -23,24 +23,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_API_KEY!
 )
 
-// Fallback prompts in case API fails
-const FALLBACKREGULARPROMPTS = [
-  { text: 'Life before death. Strength before weakness. Journey before destination.' },
-  { text: 'Honor is not dead so long as he lives in the hearts of men.' },
-  { text: 'Some men may be stronger than others. That does not give them the right to dominate those who are weaker.' },
-  { text: 'You mustnt kneel to me. The Knights Radiant must stand again.' },
-  { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
-];
-
-const FALLBACKTUGPROMPTS = [
-  { text: 'What is sanity, but a shared hallucination we cling to in a universe that forgot its own rules?' },
-  { text: 'All this happened, more or less.' },
-  { text: 'QUANTUM COLLAPSE: superposition lost in /dev/void' },
-  { text: 'VIRUS DETECTED: recursive thoughts infecting /mind/os' },
-  { text: 'I am the voice between the beats. I am what is lost in the pause. I am the silence that screams.' }
-];
-
-
 export default function GamePage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams()
   const { id: gameId } = params
@@ -71,14 +53,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
   } = useGameChannel({
     gameId,
     username,
-    onGameStart: (newPrompts, startTime, newTugPrompts) => {
+    onGameStart: (prompts, startTime) => {
       console.log('Game start received:', { prompts, startTime })
-      if (newPrompts.length !== 0) {
-        setPrompts(newPrompts.map(text => ({ text })))
-      }
-      if (newTugPrompts.length !== 0) {
-        setTugPrompts(newTugPrompts.map(text => ({ text })))
-      }
+      setPrompts(prompts.map(text => ({ text })))
       setStartTime(startTime)
       setCountdown(3)
 
@@ -116,17 +93,11 @@ export default function GamePage({ params }: { params: { id: string } }) {
       setCountdown(null)
       setStartTime(null)
     },
-    onTugModeStart: async (player1, player2, startTime, newTugPrompts) =>{
+    onTugModeStart: (player1, player2, startTime) =>{
       setIsTugMode(true)
       setTugPlayer1(player1)
       setTugPlayer2(player2)
       setTugStartTime(startTime)
-      if (newTugPrompts.length !== 0) {
-        setTugPrompts(newTugPrompts.map(text => ({ text })))
-      }
-      if (username === player1 || username === player2) {
-        setFinalStats()
-      }
     }
   })
 
@@ -150,6 +121,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
   })
 
   const setFinalStats = useCallback(() => {
+    setIsEliminated(true)
     setFinalWpm(wpm)
   }, [setIsEliminated, setFinalWpm, wpm])
 
@@ -163,7 +135,6 @@ export default function GamePage({ params }: { params: { id: string } }) {
         const playerToElim = playersRemaining[0]
         broadcastElimination(playerToElim.id)
         if (playerToElim.id === username) {
-          setIsEliminated(true)
           setFinalStats()
         }
         const remainingPlayers = playersRemaining.filter(p => p.id !== playerToElim.id)
@@ -198,6 +169,23 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const handleStartGame = async () => {
     const startTime = Date.now() + 3000;
 
+    // Fallback prompts in case API fails
+    const fallbackRegularPrompts = [
+      { text: 'Life before death. Strength before weakness. Journey before destination.' },
+      { text: 'Honor is not dead so long as he lives in the hearts of men.' },
+      { text: 'Some men may be stronger than others. That does not give them the right to dominate those who are weaker.' },
+      { text: 'You mustnt kneel to me. The Knights Radiant must stand again.' },
+      { text: 'The most important step a man can take. Its not the first one, is it? Its the next one. Always the next step.' }
+    ];
+
+    const fallbackTugPrompts = [
+      { text: 'What is sanity, but a shared hallucination we cling to in a universe that forgot its own rules?' },
+      { text: 'All this happened, more or less.' },
+      { text: 'QUANTUM COLLAPSE: superposition lost in /dev/void' },
+      { text: 'VIRUS DETECTED: recursive thoughts infecting /mind/os' },
+      { text: 'I am the voice between the beats. I am what is lost in the pause. I am the silence that screams.' }
+    ];
+
     try {
       const response = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/get_game_prompts');
       const json = await response.json();
@@ -215,57 +203,60 @@ export default function GamePage({ params }: { params: { id: string } }) {
       const tugPrompts = json.data.tug_of_war.map((p: { text: string }) => ({ text: p.text }));
 
       console.log('Parsed prompts:', { regular: regularPrompts, tug: tugPrompts });
-
+      
       setPrompts(regularPrompts);
       setTugPrompts(tugPrompts);
       setCountdown(3);
 
       await broadcastGameStart(regularPrompts, startTime, tugPrompts);
+
+      if (isHost && players.length === 2) {
+        const tugStartTime = Date.now() + 5000;
+        await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime, tugPrompts);
+        setIsTugMode(true);
+        setTugPlayer1(players[0].id);
+        setTugPlayer2(players[1].id);
+        setTugStartTime(tugStartTime);
+        return;
+      }
     } catch (err) {
       console.warn('Failed to fetch from API, using fallback prompts:', err);
-      setPrompts(FALLBACKREGULARPROMPTS);
-      setTugPrompts(FALLBACKTUGPROMPTS);
+      setPrompts(fallbackRegularPrompts);
+      setTugPrompts(fallbackTugPrompts);
       setCountdown(3);
 
-      await broadcastGameStart(FALLBACKREGULARPROMPTS, startTime, FALLBACKTUGPROMPTS);
-    }
+      await broadcastGameStart(fallbackRegularPrompts, startTime, tugPrompts);
 
-    if (isHost && players.length === 2) {
-      const tugStartTime = Date.now() + 5000;
-      await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime, tugPrompts);
-      setIsTugMode(true);
-      setTugPlayer1(players[0].id);
-      setTugPlayer2(players[1].id);
-      setTugStartTime(tugStartTime);
+      if (isHost && players.length === 2) {
+        const tugStartTime = Date.now() + 5000;
+        await broadcastTugModeStart(players[0].id, players[1].id, tugStartTime, tugPrompts);
+        setIsTugMode(true);
+        setTugPlayer1(players[0].id);
+        setTugPlayer2(players[1].id);
+        setTugStartTime(tugStartTime);
+        return;
+      }
     }
   }
 
   if (!isChannelReady) {
-    return (
-      <main className="min-h-screen bg-black text-arcade-text font-sans overflow-hidden">
-        <div className="retro-grid opacity-50"></div>
-        <div className="relative z-10 flex items-center justify-center h-screen">
-          <div className="text-arcade-text">Loading...</div>
-        </div>
-      </main>
-    )
+    return <div className="text-arcade-text">Loading...</div>
   }
 
   if (isTugMode) {
     return (
-      <main className="min-h-screen bg-black text-arcade-text font-sans overflow-hidden">
-        <div className="retro-grid opacity-50"></div>
-        <div className="relative z-10">
-          <TugOfWar
-            gameId={gameId}
-            username={username}
-            prompts={tugPrompts}
-            player1={tugPlayer1}
-            player2={tugPlayer2}
-            tugStartTime={tugStartTime!}
-          />
-        </div>
-      </main>
+      <TugOfWar
+        gameId={gameId}
+        username={username}
+        prompts={tugPrompts}
+        player1={tugPlayer1}
+        player2={tugPlayer2}
+        tugStartTime={tugStartTime!}
+        onGameReset={() => {
+          broadcastGameReset()
+          resetTypingStats()
+        }}
+      />
     )
   }
 
@@ -282,10 +273,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
   // })
 
   return (
-    <main className="min-h-screen bg-black text-arcade-text font-sans overflow-hidden">
-      <div className="retro-grid opacity-50"></div>
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        <GameHeaderBanner roomId={gameId} username={username} />
+    <main className="min-h-screen px-4 py-10 bg-arcade-background text-arcade-text font-sans">
+      <div className="max-w-3xl mx-auto space-y-10">
+        <GameHeaderBanner roomId={gameId} username={username}/>
 
         {isChannelReady && (
           <>
@@ -323,9 +313,9 @@ export default function GamePage({ params }: { params: { id: string } }) {
                   <button
                       onClick={handleStartGame}
                       disabled={!isHost}
-                      className="mt-10 mb-10 w-2/3 px-4 py-2 font-arcade bg-arcade-primary text-white rounded disabled:opacity-50"
+                      className="px-4 py-2 bg-arcade-primary text-white rounded disabled:opacity-50"
                   >
-                    {isHost ? 'Start Game' : 'Waiting for host to start game...'}
+                    {isHost ? 'Start Game' : 'Waiting for host...'}
                   </button>
                   <PlayerList players={players} currentUser={username} currentWPM={wpm} gameStarted={false}/>
                 </div>

@@ -103,16 +103,15 @@ export default function Home() {
                 className="arcade-input w-full"
                 placeholder="Player1"
             />
-          </div>
-
-          <div className="space-y-4">
             <button
-                onClick={createGame}
+                onClick={joinGame}
                 className="arcade-button w-full"
             >
-              Create New Game
+              Create Game
             </button>
+          </div>
 
+          <div className="space-y-2">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-arcade-secondary"></div>
@@ -124,7 +123,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               <label htmlFor="gameId" className="block text-arcade-secondary font-arcade">
                 Enter room code
               </label>
