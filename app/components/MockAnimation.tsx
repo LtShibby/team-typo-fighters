@@ -111,7 +111,7 @@ export default function MockAnimation() {
 
   return (
     <section className="text-center space-y-8 mt-16">
-      <h3 className="text-2xl font-bold text-arcade-accent">🤖 Simulation: Type to Survive</h3>
+      <h3 className="text-2xl font-bold text-arcade-accent">🤖 Simulation: TYPO FIGHT</h3>
 
       <div className="flex justify-center gap-8 flex-wrap">
         {basePlayers.map((p) => {
