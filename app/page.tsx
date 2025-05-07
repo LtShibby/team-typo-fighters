@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import MockAnimation from './components/MockAnimation'
+import HighScores from './components/HighScores'
 
 type ScoreKey = 'highest_wpm' | 'games_played' | 'tug_entries' | 'tug_wins'
 
@@ -288,67 +289,7 @@ export default function Home() {
         <MockAnimation />
 
         {/* High Scores */}
-        <motion.section initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.8 }} className="text-center space-y-6">
-          <h2 className="text-2xl font-bold text-arcade-accent mb-2">🏆 High Scores</h2>
-          <div className="flex justify-center gap-4 mb-6 flex-wrap">
-            {tabLabels.map(({ key, label }) => (
-              <button
-                key={key}
-                className={`px-4 py-2 rounded-md font-semibold text-sm border ${key === selectedTab ? 'bg-arcade-accent text-black' : 'bg-arcade-bg border-arcade-border'}`}
-                onClick={() => key === selectedTab ? toggleSortOrder() : setSelectedTab(key)}
-              >
-                {label} {selectedTab === key ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-              </button>
-            ))}
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border border-arcade-border table-fixed">
-              <thead className="bg-arcade-accent text-black">
-                <tr>
-                  <th className="w-1/5 px-4 py-2 text-center">Username</th>
-                  <th className="w-1/5 px-4 py-2 text-center">WPM</th>
-                  <th className="w-1/5 px-4 py-2 text-center">Games Played</th>
-                  <th className="w-1/5 px-4 py-2 text-center">Tug Entries</th>
-                  <th className="w-1/5 px-4 py-2 text-center">Tug Wins</th>
-                </tr>
-              </thead>
-              <motion.tbody
-                key={`${selectedTab}-${sortOrder}`}
-                className="bg-black text-arcade-text"
-                initial="hidden"
-                animate="visible"
-                variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-              >
-                {sortedScores.map((row, idx) => (
-                  <motion.tr
-                    key={idx}
-                    variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                    className={`border-t border-arcade-border ${idx === 0 ? 'bg-arcade-gold bg-opacity-10' : ''}`}
-                  >
-                    <td className="px-4 py-2 font-semibold">
-                      {idx === 0 ? '👑 ' : ''}
-                      {row.username}
-                    </td>
-                    {(['highest_wpm', 'games_played', 'tug_entries', 'tug_wins'] as ScoreKey[]).map(col => (
-                      <td
-                        key={col}
-                        className={`px-4 py-2 transition-all duration-300 ${selectedTab === col ? 'text-arcade-accent font-bold opacity-100' : 'text-arcade-text opacity-30'
-                          }`}
-                      >
-                        {row[col]}
-                      </td>
-                    ))}
-                  </motion.tr>
-                ))}
-              </motion.tbody>
-            </table>
-          </div>
-        </motion.section>
-
-        {/* Footer */}
-        <footer className="text-center text-sm text-arcade-muted pt-10 border-t border-arcade-border">
-          Forged with 🔥, grit, and endless ☕ by <span className="text-arcade-accent">Team Tpyo Fihgters</span> — <span className="text-arcade-primary">ACV Hackathon 2025</span>
-        </footer>
+        <HighScores />
       </div>
     </main>
   )
