@@ -44,6 +44,28 @@ const nearbyKeys: { [key: string]: string[] } = {
   // Simplified; extend for all letters if needed
 }
 
+function normalizeHighScores(data: any): ScoreEntry[] {
+  const merged: Record<string, Partial<ScoreEntry>> = {}
+
+  const keys: ScoreKey[] = ['highest_wpm', 'games_played', 'tug_entries', 'tug_wins']
+  for (const key of keys) {
+    for (const entry of data[key] || []) {
+      const user = entry.username
+      if (!merged[user]) merged[user] = { username: user, highest_wpm: 0, games_played: 0, tug_entries: 0, tug_wins: 0 }
+      merged[user][key] = entry[key]
+    }
+  }
+
+  return Object.values(merged).map(entry => ({
+    username: entry.username!,
+    highest_wpm: entry.highest_wpm || 0,
+    games_played: entry.games_played || 0,
+    tug_entries: entry.tug_entries || 0,
+    tug_wins: entry.tug_wins || 0,
+  }))
+}
+
+
 function TypingAnimation({
   text,
   as: Tag = 'span',
@@ -169,18 +191,23 @@ export default function Home() {
   useEffect(() => {
     const fetchScores = async () => {
       try {
-        const res = await fetch(
-          'https://python3-m-uvicorn-main-production.up.railway.app/high_scores'
-        )
-        const data = await res.json()
-        if (Array.isArray(data)) setAllScores(data)
-        else throw new Error('Invalid structure')
+        const res = await fetch('https://python3-m-uvicorn-main-production.up.railway.app/high_scores')
+        const json = await res.json()
+        const normalized = normalizeHighScores(json)
+        if (normalized.length > 0) {
+          setAllScores(normalized)
+        } else {
+          throw new Error('Empty scores')
+        }
       } catch (err) {
+        console.warn('Failed to fetch high scores:', err)
         setAllScores(mockHighScores)
       }
     }
+  
     fetchScores()
   }, [])
+  
 
   const sortedScores = [...allScores].sort((a, b) =>
     sortOrder === 'asc' ? a[selectedTab] - b[selectedTab] : b[selectedTab] - a[selectedTab]
