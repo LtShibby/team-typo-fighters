@@ -42,19 +42,19 @@ export function TugPrompt({
   }, [isCooldown, cooldownEndTime])
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
+    <div className="font-arcade w-full mx-auto p-4">
       <div className="mb-8">
         {isCooldown ? (
           <div className="text-center">
-            <div className="text-3xl mb-2 text-arcade-text">{gameStarted ? "Round Over!" : (isSpectator ? "Prepare to witness the final fight!": "Prepare for the final fight!")}</div>
+            <div className="text-3xl mb-2 text-arcade-accent">{gameStarted ? "Round Over!" : (isSpectator ? "Prepare to witness the final fight!": "Prepare for the final fight!")}</div>
             <div className="text-lg text-arcade-text">
               Next round in {(cooldownTimeLeft / 1000).toFixed(1)}s
             </div>
           </div>
         ) : (
-          <div className="text-center">
-            <div className="text-3xl mb-2 text-arcade-text">{isSpectator ? "The final fighters are typing this:" : "Type This:"}</div>
-            <div className="text-2xl font-mono">
+          <div className="text-left">
+            <div className="text-3xl mb-2 underline text-arcade-secondary">{isSpectator ? "The final fighters are typing this:" : "Type This:"}</div>
+            <div className="text-2xl">
               {prompt.split('').map((char, index) => {
                 const isTyped = index < currentInput.length
                 const isCorrect = isTyped && currentInput[index] === char
